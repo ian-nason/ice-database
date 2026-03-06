@@ -1,0 +1,19 @@
+[project]
+name = "ice-database"
+version = "0.1.0"
+description = "Build a queryable DuckDB database from ICE enforcement data (Deportation Data Project)"
+requires-python = ">=3.11"
+dependencies = [
+    "duckdb>=1.0",
+    "pandas",
+    "openpyxl",
+    "huggingface_hub",
+    "tqdm",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
