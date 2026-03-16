@@ -517,6 +517,142 @@ def run_validation(con: duckdb.DuckDBPyConnection, db_path: Path):
 
 
 # ---------------------------------------------------------------------------
+# Data dictionary
+# ---------------------------------------------------------------------------
+
+
+def build_columns_table(con):
+    """Build the _columns data dictionary table."""
+    con.execute("DROP TABLE IF EXISTS _columns")
+
+    # Base columns from information_schema
+    # ICE _metadata has no source_file column, so we set it to NULL
+    con.execute("""
+        CREATE TABLE _columns AS
+        SELECT
+            c.table_name,
+            c.column_name,
+            c.data_type,
+            NULL::VARCHAR AS source_file
+        FROM information_schema.columns c
+        WHERE c.table_schema = 'main'
+          AND c.table_name NOT IN ('_metadata', '_columns')
+    """)
+
+    # Add enrichment columns
+    con.execute("ALTER TABLE _columns ADD COLUMN example_value VARCHAR")
+    con.execute("ALTER TABLE _columns ADD COLUMN join_hint VARCHAR")
+    con.execute("ALTER TABLE _columns ADD COLUMN null_pct DOUBLE")
+
+    # Known join hints for ICE
+    join_hints = {
+        "unique_id": "Anonymized person ID, links across arrests, detainers, detentions, removals",
+        "apprehension_date": "Arrest date, joins arrests to detentions by person+date",
+        "stay_book_in_date": "Detention start date",
+        "departure_date": "Removal/departure date",
+        "detention_facility_code": "Facility identifier for detention location",
+        "case_id": "EID case identifier",
+        "data_source": "Release identifier (release_2023 or release_2025)",
+    }
+
+    for col, hint in join_hints.items():
+        con.execute(
+            "UPDATE _columns SET join_hint = ? WHERE column_name = ?",
+            [hint, col],
+        )
+
+    # Populate example_value and null_pct for each column
+    rows = con.execute(
+        "SELECT table_name, column_name FROM _columns"
+    ).fetchall()
+
+    for table_name, column_name in rows:
+        try:
+            result = con.execute(
+                f'SELECT CAST("{column_name}" AS VARCHAR) '
+                f'FROM "{table_name}" '
+                f'WHERE "{column_name}" IS NOT NULL LIMIT 1'
+            ).fetchone()
+            if result:
+                val = result[0]
+                if len(val) > 80:
+                    val = val[:77] + "..."
+                con.execute(
+                    "UPDATE _columns SET example_value = ? "
+                    "WHERE table_name = ? AND column_name = ?",
+                    [val, table_name, column_name],
+                )
+        except Exception:
+            pass
+
+        try:
+            result = con.execute(
+                f'SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE "{column_name}" IS NULL) '
+                f'/ COUNT(*), 1) FROM "{table_name}"'
+            ).fetchone()
+            if result and result[0] is not None:
+                con.execute(
+                    "UPDATE _columns SET null_pct = ? "
+                    "WHERE table_name = ? AND column_name = ?",
+                    [result[0], table_name, column_name],
+                )
+        except Exception:
+            pass
+
+
+def export_dictionary(con, output_path):
+    """Export _columns and _metadata as a readable DICTIONARY.md file."""
+    lines = []
+    lines.append("# Data Dictionary")
+    lines.append("")
+    lines.append("Source: [Deportation Data Project](https://deportationdata.org)")
+    lines.append("")
+
+    tables = con.execute(
+        "SELECT DISTINCT table_name FROM _columns ORDER BY table_name"
+    ).fetchall()
+
+    for (table_name,) in tables:
+        meta = con.execute(
+            "SELECT row_count, description FROM _metadata WHERE table_name = ?",
+            [table_name],
+        ).fetchone()
+
+        lines.append(f"## {table_name}")
+        lines.append("")
+        if meta:
+            row_count, description = meta
+            if description:
+                lines.append(f"{description}")
+                lines.append("")
+            if row_count:
+                lines.append(f"Rows: {row_count:,}")
+            lines.append("")
+
+        lines.append("| Column | Type | Nulls | Example | Join |")
+        lines.append("|--------|------|-------|---------|------|")
+
+        cols = con.execute(
+            "SELECT column_name, data_type, null_pct, example_value, join_hint "
+            "FROM _columns WHERE table_name = ? ORDER BY rowid",
+            [table_name],
+        ).fetchall()
+
+        for col_name, dtype, null_pct, example, join_hint in cols:
+            null_str = f"{null_pct:.1f}%" if null_pct is not None else ""
+            example_str = example if example else ""
+            example_str = example_str.replace("|", "\\|")
+            join_str = join_hint if join_hint else ""
+            lines.append(f"| {col_name} | {dtype} | {null_str} | {example_str} | {join_str} |")
+
+        lines.append("")
+
+    with open(output_path, "w") as f:
+        f.write("\n".join(lines))
+    print(f"  Exported to {output_path}")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -536,8 +672,8 @@ def main():
     print("ICE Database Builder (multi-release)")
     print("=" * 60)
 
-    # [1/5] Discover
-    print(f"\n[1/5] Discovering files in {args.data_dir}")
+    # [1/7] Discover
+    print(f"\n[1/7] Discovering files in {args.data_dir}")
     if not args.data_dir.exists():
         print(f"  Error: {args.data_dir} not found")
         sys.exit(1)
@@ -551,8 +687,8 @@ def main():
     if args.tables:
         sources = {k: v for k, v in sources.items() if k in args.tables}
 
-    # [2/5] Load
-    print(f"\n[2/5] Loading tables")
+    # [2/7] Load
+    print(f"\n[2/7] Loading tables")
     db_path = args.output
     db_path.unlink(missing_ok=True)
     con = duckdb.connect(str(db_path))
@@ -571,8 +707,8 @@ def main():
             built.add(tbl)
             print(f"    -> {tbl}: {rc:,} rows ({elapsed:.1f}s)")
 
-    # [3/5] Dedup
-    print(f"\n[3/5] Deduplicating overlapping records")
+    # [3/7] Dedup
+    print(f"\n[3/7] Deduplicating overlapping records")
     for tbl, keys in DEDUP_KEYS.items():
         if tbl not in built:
             continue
@@ -588,14 +724,24 @@ def main():
         removed = dedup_table(con, tbl, keys)
         print(f"  {tbl}: removed {removed:,} duplicates")
 
-    # [4/5] Views
-    print(f"\n[4/5] Creating views")
+    # [4/7] Views
+    print(f"\n[4/7] Creating views")
     create_views(con, built)
 
-    # [5/5] Metadata
-    print(f"\n[5/5] Building metadata")
+    # [5/7] Metadata
+    print(f"\n[5/7] Building metadata")
     build_metadata(con, built)
     run_validation(con, db_path)
+
+    # [6/7] Build _columns data dictionary
+    print(f"\n[6/7] Building _columns data dictionary")
+    build_columns_table(con)
+    col_count = con.execute("SELECT COUNT(*) FROM _columns").fetchone()[0]
+    print(f"  {col_count} columns cataloged in _columns")
+
+    # [7/7] Export DICTIONARY.md
+    print(f"\n[7/7] Exporting DICTIONARY.md")
+    export_dictionary(con, db_path.parent / "DICTIONARY.md")
 
     con.close()
 
