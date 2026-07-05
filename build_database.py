@@ -2,20 +2,25 @@
 """
 ICE Database Builder
 
-Reads ICE enforcement data from two FOIA releases (2023 + 2025) of the
-Deportation Data Project, normalizes schemas, deduplicates overlapping
-records, and produces a queryable DuckDB database.
+Reads ICE enforcement data from FOIA releases of the Deportation Data
+Project, normalizes schemas, deduplicates overlapping records, and
+produces a queryable DuckDB database.
 
 Data sources:
   release_2023/ - 2023 FOIA litigation release (FY2012-FY2023)
   release_2025/ - Dec 2025 settlement release (Sep 2023 - Oct 2025)
+  release_2026/ - Mar 2026 release (Oct 2022 - Mar 2026)
 
 Tables produced:
-  arrests        - Administrative arrests (both releases)
-  detainers      - Detainer requests (2025 only)
-  detentions     - Detention stays (both releases)
-  removals       - Deportation/removal records (2023 only)
+  arrests        - Administrative arrests
+  detainers      - Detainer requests
+  detentions     - Detention stays
+  encounters     - ICE encounters (2026 release onward)
+  removals       - Deportation/removal records
   rca_decisions  - Release/custody assessment decision history (2023 only)
+
+Deduplication prefers the newest release for records present in more
+than one release (releases overlap in time coverage).
 
 Usage:
     uv run python build_database.py
@@ -46,6 +51,7 @@ TABLE_PATTERNS = [
     ("arrests", re.compile(r"arrest", re.I)),
     ("detainers", re.compile(r"detainer", re.I)),
     ("detentions", re.compile(r"detention", re.I)),
+    ("encounters", re.compile(r"encounter", re.I)),
     ("removals", re.compile(r"removal", re.I)),
     ("rca_decisions", re.compile(r"rca", re.I)),
 ]
@@ -54,6 +60,7 @@ TABLE_DESCRIPTIONS = {
     "arrests": "ICE administrative arrests",
     "detainers": "Detainer requests issued to jails/prisons",
     "detentions": "Detention stays (book-in to book-out)",
+    "encounters": "ICE encounters with individuals",
     "removals": "Deportation/removal records",
     "rca_decisions": "Release/custody assessment decision history",
 }
@@ -81,11 +88,72 @@ COLUMN_RENAMES = {
     "arrested_created_by": "arrest_created_by",
 }
 
-# Dedup keys per table — for tables present in both releases
+# Table-scoped renames — for headers that changed meaning only in one table
+# (arrests has its own distinct departed_date field, so this can't be global)
+TABLE_COLUMN_RENAMES = {
+    "removals": {
+        "departed_date": "departure_date",  # 2026 release renamed the header
+    },
+}
+
+# Dedup keys per table — removes duplicates WITHIN a release only. unique_ids
+# are re-anonymized in every FOIA release, so rows can never be matched across
+# releases; cross-release overlap is handled by SUPERSEDE_DELETES below.
 DEDUP_KEYS = {
     "arrests": ["unique_id", "apprehension_date"],
     "detentions": ["unique_id", "stay_book_in_date", "detention_facility_code"],
+    "detainers": ["unique_id", "detainer_prepare_date"],
+    "removals": ["unique_id", "departure_date"],
 }
+
+# Cross-release supersede — release_2026 is cumulative (activity window
+# 2022-10-01 through 2026-03-10) and fully contains release_2025's window,
+# plus release_2023's final year. Older releases' rows inside that window are
+# duplicates that cannot be row-matched (per-release anonymization), so they
+# are superseded wholesale: event-dated tables by event date, detentions by
+# whether the stay was active on/after the window start.
+RELEASE_2026_START = "DATE '2022-10-01'"
+
+SUPERSEDE_DELETES = {
+    "arrests": [
+        "DELETE FROM arrests WHERE data_source = 'release_2025'",
+        f"DELETE FROM arrests WHERE data_source = 'release_2023'"
+        f" AND apprehension_date >= {RELEASE_2026_START}",
+    ],
+    "detainers": [
+        "DELETE FROM detainers WHERE data_source = 'release_2025'",
+    ],
+    "removals": [
+        f"DELETE FROM removals WHERE data_source = 'release_2023'"
+        f" AND departure_date >= {RELEASE_2026_START}",
+    ],
+    "detentions": [
+        "DELETE FROM detentions WHERE data_source = 'release_2025'",
+        f"DELETE FROM detentions WHERE data_source = 'release_2023' AND ("
+        f"stay_book_in_date >= {RELEASE_2026_START}"
+        f" OR detention_book_out_date >= {RELEASE_2026_START}"
+        f" OR detention_book_out_date IS NULL)",
+    ],
+}
+
+
+def apply_supersede(con: duckdb.DuckDBPyConnection, built: set[str]) -> None:
+    """Delete older-release rows superseded by release_2026's coverage."""
+    for tbl, stmts in SUPERSEDE_DELETES.items():
+        if tbl not in built:
+            continue
+        srcs = {
+            r[0] for r in con.execute(
+                f"SELECT DISTINCT data_source FROM {tbl}"
+            ).fetchall()
+        }
+        if "release_2026" not in srcs or len(srcs) == 1:
+            continue
+        before = con.execute(f"SELECT COUNT(*) FROM {tbl}").fetchone()[0]
+        for stmt in stmts:
+            con.execute(stmt)
+        after = con.execute(f"SELECT COUNT(*) FROM {tbl}").fetchone()[0]
+        print(f"  {tbl}: superseded {before - after:,} older-release rows")
 
 # Date column detection
 DATE_RE = re.compile(r"date", re.I)
@@ -129,10 +197,13 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def apply_renames(df: pd.DataFrame) -> pd.DataFrame:
+def apply_renames(df: pd.DataFrame, table_name: str | None = None) -> pd.DataFrame:
     """Apply standard column renames for cross-release harmonization."""
+    renames = dict(COLUMN_RENAMES)
+    if table_name:
+        renames.update(TABLE_COLUMN_RENAMES.get(table_name, {}))
     rmap = {}
-    for old, new in COLUMN_RENAMES.items():
+    for old, new in renames.items():
         if old in df.columns and new not in df.columns:
             rmap[old] = new
     if rmap:
@@ -239,7 +310,7 @@ def load_table(
                 continue
 
             df = normalize_columns(df)
-            df = apply_renames(df)
+            df = apply_renames(df, table_name)
             df = cast_dates(df)
             df["data_source"] = get_release_name(fpath)
             df = df.dropna(axis=1, how="all")
@@ -282,7 +353,7 @@ def load_table(
 def dedup_table(
     con: duckdb.DuckDBPyConnection, table_name: str, key_cols: list[str],
 ) -> int:
-    """Remove cross-release duplicates, preferring release_2025. Returns rows removed."""
+    """Remove cross-release duplicates, preferring the newest release. Returns rows removed."""
     existing = {r[0] for r in con.execute(f"DESCRIBE {table_name}").fetchall()}
     keys = [k for k in key_cols if k in existing]
 
@@ -294,21 +365,21 @@ def dedup_table(
     key_list = ", ".join(f'"{k}"' for k in keys)
     null_check = f'"{keys[0]}" IS NOT NULL'
 
+    # Aggregate only rowid + keys (narrow) and DELETE the losers; rewriting
+    # the whole wide table through a window function OOMs on detentions.
     con.execute(f"""
-        CREATE OR REPLACE TABLE {table_name} AS
-        WITH ranked AS (
-            SELECT *,
-                ROW_NUMBER() OVER (
-                    PARTITION BY {key_list}
-                    ORDER BY CASE WHEN data_source = 'release_2025' THEN 0 ELSE 1 END
-                ) AS _rn
-            FROM {table_name}
-            WHERE {null_check}
-        )
-        SELECT * EXCLUDE (_rn) FROM ranked WHERE _rn = 1
-        UNION ALL
-        SELECT * FROM {table_name} WHERE {null_check} IS NOT TRUE
+        CREATE TEMP TABLE _dedup_keep AS
+        SELECT arg_max(rowid, COALESCE(data_source, '')) AS _rid
+        FROM {table_name}
+        WHERE {null_check}
+        GROUP BY {key_list}
     """)
+    con.execute(f"""
+        DELETE FROM {table_name}
+        WHERE {null_check}
+          AND rowid NOT IN (SELECT _rid FROM _dedup_keep WHERE _rid IS NOT NULL)
+    """)
+    con.execute("DROP TABLE _dedup_keep")
 
     after = con.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
     return before - after
@@ -552,7 +623,7 @@ def build_columns_table(con):
         "departure_date": "Removal/departure date",
         "detention_facility_code": "Facility identifier for detention location",
         "case_id": "EID case identifier",
-        "data_source": "Release identifier (release_2023 or release_2025)",
+        "data_source": "Release identifier (release_2023, release_2025, or release_2026)",
     }
 
     for col, hint in join_hints.items():
@@ -692,9 +763,15 @@ def main():
     db_path = args.output
     db_path.unlink(missing_ok=True)
     con = duckdb.connect(str(db_path))
+    # Window-function dedup over the full detentions table can exceed RAM;
+    # allow disk spill and drop insertion-order preservation.
+    con.execute("SET preserve_insertion_order = false")
+    con.execute(f"SET temp_directory = '{db_path.resolve()}.tmp'")
 
     built: set[str] = set()
-    build_order = ["removals", "rca_decisions", "arrests", "detainers", "detentions"]
+    build_order = [
+        "removals", "rca_decisions", "encounters", "arrests", "detainers", "detentions",
+    ]
 
     for tbl in build_order:
         chunks = sources.get(tbl, [])
@@ -723,6 +800,10 @@ def main():
             continue
         removed = dedup_table(con, tbl, keys)
         print(f"  {tbl}: removed {removed:,} duplicates")
+
+    print(f"\n[3b/7] Superseding overlapping release windows")
+    apply_supersede(con, built)
+    con.execute("CHECKPOINT")
 
     # [4/7] Views
     print(f"\n[4/7] Creating views")
