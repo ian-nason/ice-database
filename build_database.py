@@ -129,10 +129,14 @@ SUPERSEDE_DELETES = {
     ],
     "detentions": [
         "DELETE FROM detentions WHERE data_source = 'release_2025'",
+        # Condition on STAY book-out, not segment book-out: deleting only
+        # post-boundary segments orphans the pre-boundary segments of stays
+        # that were active at the window start and are fully re-recorded
+        # in release_2026.
         f"DELETE FROM detentions WHERE data_source = 'release_2023' AND ("
         f"stay_book_in_date >= {RELEASE_2026_START}"
-        f" OR detention_book_out_date >= {RELEASE_2026_START}"
-        f" OR detention_book_out_date IS NULL)",
+        f" OR stay_book_out_date >= {RELEASE_2026_START}"
+        f" OR stay_book_out_date IS NULL)",
     ],
 }
 
@@ -390,46 +394,129 @@ def dedup_table(
 # ---------------------------------------------------------------------------
 
 VIEWS = {
+    # The detentions table is one row per facility SEGMENT (~2 per stay);
+    # this collapses to one row per stay. Joining tables on unique_id alone
+    # is wrong twice over: it fans out across every stay/removal a person
+    # ever had (negative durations), and unique_ids are re-anonymized per
+    # release so matches are only meaningful within one data_source.
+    "v_detention_stays": {
+        "deps": {"detentions"},
+        "sql": """
+            CREATE OR REPLACE VIEW v_detention_stays AS
+            SELECT
+                unique_id,
+                data_source,
+                stay_book_in_date,
+                MAX(stay_book_out_date) AS stay_book_out_date,
+                MAX(stay_release_reason) AS stay_release_reason,
+                arg_min(detention_facility,
+                        COALESCE(detention_book_in_date, stay_book_in_date))
+                    AS initial_detention_facility,
+                COUNT(*) AS facility_segments
+            FROM detentions
+            GROUP BY 1, 2, 3
+        """,
+    },
     "v_arrest_to_detention": {
         "deps": {"arrests", "detentions"},
         "sql": """
             CREATE OR REPLACE VIEW v_arrest_to_detention AS
-            SELECT
-                a.*,
-                d.stay_book_in_date,
-                d.stay_book_out_date,
-                d.detention_release_reason,
-                d.detention_facility,
-                DATEDIFF('day', a.apprehension_date, d.stay_book_in_date)
-                    AS days_arrest_to_detention,
-                DATEDIFF('day', d.stay_book_in_date, d.stay_book_out_date)
-                    AS days_in_detention
-            FROM arrests a
-            LEFT JOIN detentions d ON a.unique_id = d.unique_id
+            -- One row per arrest, matched to the FIRST detention stay booked
+            -- in on/after the arrest date within the same release; arrests
+            -- with no such stay keep NULL stay columns.
+            WITH a AS (
+                SELECT ROW_NUMBER() OVER () AS _arrest_seq, * FROM arrests
+            ),
+            stays AS (
+                SELECT unique_id, data_source, stay_book_in_date,
+                       MAX(stay_book_out_date) AS stay_book_out_date,
+                       MAX(stay_release_reason) AS stay_release_reason,
+                       arg_min(detention_facility,
+                               COALESCE(detention_book_in_date, stay_book_in_date))
+                           AS initial_detention_facility
+                FROM detentions
+                GROUP BY 1, 2, 3
+            )
+            SELECT * EXCLUDE (_arrest_seq) FROM (
+                SELECT
+                    a.*,
+                    s.stay_book_in_date,
+                    s.stay_book_out_date,
+                    s.stay_release_reason,
+                    s.initial_detention_facility,
+                    DATEDIFF('day', a.apprehension_date::DATE,
+                             s.stay_book_in_date::DATE)
+                        AS days_arrest_to_detention,
+                    DATEDIFF('day', s.stay_book_in_date::DATE,
+                             s.stay_book_out_date::DATE)
+                        AS days_in_detention
+                FROM a
+                LEFT JOIN stays s
+                  ON a.unique_id = s.unique_id
+                 AND a.data_source = s.data_source
+                 AND s.stay_book_in_date::DATE >= a.apprehension_date::DATE
+                QUALIFY ROW_NUMBER() OVER (
+                    PARTITION BY a._arrest_seq ORDER BY s.stay_book_in_date
+                ) = 1
+            )
         """,
     },
     "v_enforcement_pipeline": {
         "deps": {"arrests", "detentions", "removals"},
         "sql": """
             CREATE OR REPLACE VIEW v_enforcement_pipeline AS
+            -- One row per arrest, matched to the first detention stay and
+            -- first removal on/after the arrest date within the same release.
+            WITH a AS (
+                SELECT ROW_NUMBER() OVER () AS _arrest_seq,
+                       unique_id, data_source, apprehension_date
+                FROM arrests
+            ),
+            stays AS (
+                SELECT unique_id, data_source, stay_book_in_date,
+                       MAX(stay_book_out_date) AS stay_book_out_date,
+                       arg_min(detention_facility,
+                               COALESCE(detention_book_in_date, stay_book_in_date))
+                           AS initial_detention_facility
+                FROM detentions
+                GROUP BY 1, 2, 3
+            ),
+            ad AS (
+                SELECT a.*,
+                       s.stay_book_in_date, s.stay_book_out_date,
+                       s.initial_detention_facility
+                FROM a
+                LEFT JOIN stays s
+                  ON a.unique_id = s.unique_id
+                 AND a.data_source = s.data_source
+                 AND s.stay_book_in_date::DATE >= a.apprehension_date::DATE
+                QUALIFY ROW_NUMBER() OVER (
+                    PARTITION BY a._arrest_seq ORDER BY s.stay_book_in_date
+                ) = 1
+            )
             SELECT
-                a.unique_id,
-                a.apprehension_date,
-                a.data_source AS arrest_source,
-                d.stay_book_in_date,
-                d.stay_book_out_date,
-                d.detention_facility,
+                ad.unique_id,
+                ad.apprehension_date,
+                ad.data_source AS arrest_source,
+                ad.stay_book_in_date,
+                ad.stay_book_out_date,
+                ad.initial_detention_facility AS detention_facility,
                 r.departure_date,
                 r.departure_country AS removal_country,
-                DATEDIFF('day', a.apprehension_date, d.stay_book_in_date)
-                    AS days_to_detention,
-                DATEDIFF('day', d.stay_book_in_date, d.stay_book_out_date)
-                    AS days_detained,
-                DATEDIFF('day', a.apprehension_date, r.departure_date)
-                    AS days_to_removal
-            FROM arrests a
-            LEFT JOIN detentions d ON a.unique_id = d.unique_id
-            LEFT JOIN removals r ON a.unique_id = r.unique_id
+                DATEDIFF('day', ad.apprehension_date::DATE,
+                         ad.stay_book_in_date::DATE) AS days_to_detention,
+                DATEDIFF('day', ad.stay_book_in_date::DATE,
+                         ad.stay_book_out_date::DATE) AS days_detained,
+                DATEDIFF('day', ad.apprehension_date::DATE,
+                         r.departure_date::DATE) AS days_to_removal
+            FROM ad
+            LEFT JOIN removals r
+              ON ad.unique_id = r.unique_id
+             AND ad.data_source = r.data_source
+             AND r.departure_date::DATE >= ad.apprehension_date::DATE
+            QUALIFY ROW_NUMBER() OVER (
+                PARTITION BY ad._arrest_seq ORDER BY r.departure_date
+            ) = 1
         """,
     },
     "v_daily_arrests": {
