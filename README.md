@@ -2,7 +2,7 @@
 
 A clean, queryable DuckDB database built from ICE enforcement data published by the [Deportation Data Project](https://law.ucla.edu/academics/centers/center-immigration-law-and-policy/deportation-data-project) (Berkeley Law / UCLA) via FOIA litigation.
 
-**22M+ rows** across **6 tables** covering ICE arrests, detainers, detentions, removals, encounters, and custody decisions from FY2012 through March 10, 2026.
+**23.5M+ rows** across **6 tables** covering ICE arrests, detainers, detentions, removals, encounters, and custody decisions from FY2012 through August 6, 2026.
 
 ## Data Sources
 
