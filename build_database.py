@@ -7,9 +7,13 @@ Project, normalizes schemas, deduplicates overlapping records, and
 produces a queryable DuckDB database.
 
 Data sources:
-  release_2023/ - 2023 FOIA litigation release (FY2012-FY2023)
-  release_2025/ - Dec 2025 settlement release (Sep 2023 - Oct 2025)
-  release_2026/ - Mar 2026 release (Oct 2022 - Mar 2026)
+  release_2023/    - 2023 FOIA litigation release (FY2012-FY2023)
+  release_2025/    - Dec 2025 settlement release (Sep 2023 - Oct 2025)  [superseded]
+  release_2026/    - Mar 2026 release (Oct 2022 - Mar 2026)             [superseded]
+  release_2026_08/ - Aug 2026 release (Oct 2022 - Aug 6 2026), cumulative
+
+Only release_2023 + the latest cumulative release (LATEST_RELEASE) are needed;
+older cumulative releases are superseded wholesale if present.
 
 Tables produced:
   arrests        - Administrative arrests
@@ -28,6 +32,7 @@ Usage:
 """
 
 import argparse
+import os
 import re
 import sys
 import time
@@ -47,12 +52,15 @@ DEFAULT_OUTPUT = "ice.duckdb"
 # File classification — map filenames to table names
 # ---------------------------------------------------------------------------
 
+# The 2023 and Mar-2026 releases spell the table out in the filename; the
+# Aug-2026 release uses DDP's abbreviations (Hausman_ARS_FY2025_...): ARS =
+# arrests, DPR = detainers, DET = detentions, ENC = encounters, REM = removals.
 TABLE_PATTERNS = [
-    ("arrests", re.compile(r"arrest", re.I)),
-    ("detainers", re.compile(r"detainer", re.I)),
-    ("detentions", re.compile(r"detention", re.I)),
-    ("encounters", re.compile(r"encounter", re.I)),
-    ("removals", re.compile(r"removal", re.I)),
+    ("arrests", re.compile(r"arrest|_ARS_", re.I)),
+    ("detainers", re.compile(r"detainer|_DPR_", re.I)),
+    ("detentions", re.compile(r"detention|_DET_", re.I)),
+    ("encounters", re.compile(r"encounter|_ENC_", re.I)),
+    ("removals", re.compile(r"removal|_REM_", re.I)),
     ("rca_decisions", re.compile(r"rca", re.I)),
 ]
 
@@ -74,9 +82,12 @@ COLUMN_RENAMES = {
     "unique_identifier": "unique_id",
     "anonymized_identifier": "unique_id",
     "anonymized_identifer": "unique_id",  # typo in 2023 removals
-    # Detention date columns (2025 appends _time)
+    "anonymized_unique_identifier": "unique_id",  # Aug 2026 release
+    # Detention date columns (2025+ append _time)
     "stay_book_in_date_time": "stay_book_in_date",
+    "stay_book_out_date_time": "stay_book_out_date",
     "book_in_date_time": "detention_book_in_date",
+    "detention_book_in_date_time": "detention_book_in_date",
     "detention_book_out_date_time": "detention_book_out_date",
     # Cross-release field names
     "marital_status": "marital",
@@ -106,43 +117,57 @@ DEDUP_KEYS = {
     "removals": ["unique_id", "departure_date"],
 }
 
-# Cross-release supersede — release_2026 is cumulative (activity window
-# 2022-10-01 through 2026-03-10) and fully contains release_2025's window,
-# plus release_2023's final year. Older releases' rows inside that window are
-# duplicates that cannot be row-matched (per-release anonymization), so they
-# are superseded wholesale: event-dated tables by event date, detentions by
-# whether the stay was active on/after the window start.
-RELEASE_2026_START = "DATE '2022-10-01'"
+# Cross-release supersede — the latest DDP release is cumulative (activity
+# window LATEST_RELEASE_START through its posting date) and fully contains
+# every earlier cumulative release's window, plus release_2023's final year.
+# Older releases' rows inside that window are duplicates that cannot be
+# row-matched (per-release anonymization), so they are superseded wholesale:
+# event-dated tables by event date, detentions by whether the stay was active
+# on/after the window start.
+LATEST_RELEASE = "release_2026_08"          # Aug 2026 release, Oct 2022 - Aug 6 2026
+LATEST_RELEASE_START = "DATE '2022-10-01'"
+# Earlier cumulative releases that LATEST_RELEASE fully contains.
+SUPERSEDED_RELEASES = ("release_2025", "release_2026")
+_OLD = ", ".join(f"'{r}'" for r in SUPERSEDED_RELEASES)
 
 SUPERSEDE_DELETES = {
     "arrests": [
-        "DELETE FROM arrests WHERE data_source = 'release_2025'",
+        f"DELETE FROM arrests WHERE data_source IN ({_OLD})",
         f"DELETE FROM arrests WHERE data_source = 'release_2023'"
-        f" AND apprehension_date >= {RELEASE_2026_START}",
+        f" AND apprehension_date >= {LATEST_RELEASE_START}",
     ],
     "detainers": [
-        "DELETE FROM detainers WHERE data_source = 'release_2025'",
+        f"DELETE FROM detainers WHERE data_source IN ({_OLD})",
+    ],
+    "encounters": [
+        f"DELETE FROM encounters WHERE data_source IN ({_OLD})",
     ],
     "removals": [
+        f"DELETE FROM removals WHERE data_source IN ({_OLD})",
         f"DELETE FROM removals WHERE data_source = 'release_2023'"
-        f" AND departure_date >= {RELEASE_2026_START}",
+        f" AND departure_date >= {LATEST_RELEASE_START}",
     ],
     "detentions": [
-        "DELETE FROM detentions WHERE data_source = 'release_2025'",
+        f"DELETE FROM detentions WHERE data_source IN ({_OLD})",
         # Condition on STAY book-out, not segment book-out: deleting only
         # post-boundary segments orphans the pre-boundary segments of stays
         # that were active at the window start and are fully re-recorded
-        # in release_2026.
+        # in the latest release.
         f"DELETE FROM detentions WHERE data_source = 'release_2023' AND ("
-        f"stay_book_in_date >= {RELEASE_2026_START}"
-        f" OR stay_book_out_date >= {RELEASE_2026_START}"
+        f"stay_book_in_date >= {LATEST_RELEASE_START}"
+        f" OR stay_book_out_date >= {LATEST_RELEASE_START}"
         f" OR stay_book_out_date IS NULL)",
     ],
 }
 
+# Tables that need an exact whole-row dedup within the latest release (the
+# July 2026 audit found 12,097 fully duplicated encounter rows). This runs
+# regardless of how many releases feed the table, unlike DEDUP_KEYS.
+EXACT_DEDUP_TABLES = ["encounters"]
+
 
 def apply_supersede(con: duckdb.DuckDBPyConnection, built: set[str]) -> None:
-    """Delete older-release rows superseded by release_2026's coverage."""
+    """Delete older-release rows superseded by LATEST_RELEASE's coverage."""
     for tbl, stmts in SUPERSEDE_DELETES.items():
         if tbl not in built:
             continue
@@ -151,7 +176,7 @@ def apply_supersede(con: duckdb.DuckDBPyConnection, built: set[str]) -> None:
                 f"SELECT DISTINCT data_source FROM {tbl}"
             ).fetchall()
         }
-        if "release_2026" not in srcs or len(srcs) == 1:
+        if LATEST_RELEASE not in srcs or len(srcs) == 1:
             continue
         before = con.execute(f"SELECT COUNT(*) FROM {tbl}").fetchone()[0]
         for stmt in stmts:
@@ -385,6 +410,41 @@ def dedup_table(
     """)
     con.execute("DROP TABLE _dedup_keep")
 
+    after = con.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+    return before - after
+
+
+def dedup_exact_rows(
+    con: duckdb.DuckDBPyConnection, table_name: str, not_null_col: str = "unique_id",
+) -> int:
+    """Remove exact whole-row duplicates (all columns equal). Returns rows removed.
+
+    Ported from audit/2026-07/repair_audit.py step 2. Only rows with a non-null
+    ``not_null_col`` are considered so fully redacted rows are left alone.
+    """
+    cols = [
+        r[0] for r in con.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = ? ORDER BY ordinal_position", [table_name],
+        ).fetchall()
+    ]
+    if not_null_col not in cols:
+        return 0
+    col_list = ", ".join(f'"{c}"' for c in cols)
+    before = con.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+    con.execute(f"""
+        CREATE TEMP TABLE _exact_keep AS
+        SELECT MIN(rowid) AS _rid
+        FROM {table_name}
+        WHERE "{not_null_col}" IS NOT NULL
+        GROUP BY {col_list}
+    """)
+    con.execute(f"""
+        DELETE FROM {table_name}
+        WHERE "{not_null_col}" IS NOT NULL
+          AND rowid NOT IN (SELECT _rid FROM _exact_keep)
+    """)
+    con.execute("DROP TABLE _exact_keep")
     after = con.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
     return before - after
 
@@ -673,6 +733,59 @@ def run_validation(con: duckdb.DuckDBPyConnection, db_path: Path):
     size_mb = db_path.stat().st_size / (1024**2)
     print(f"\n  Database size: {size_mb:,.0f} MB ({size_mb/1024:.1f} GB)")
 
+    # ---- Regression guards from the July 2026 audit (audit/2026-07) ----
+    print("\n  Audit regression checks:")
+    failures = 0
+
+    def check(name, ok, detail=""):
+        nonlocal failures
+        print(f"    [{'PASS' if ok else 'FAIL'}] {name}" + (f"  ({detail})" if detail else ""))
+        if not ok:
+            failures += 1
+
+    def q(sql):
+        return con.execute(sql).fetchone()[0]
+
+    try:
+        n_arr = q("SELECT COUNT(*) FROM arrests")
+        n_v = q("SELECT COUNT(*) FROM v_arrest_to_detention")
+        check("v_arrest_to_detention is one row per arrest", n_v == n_arr, f"{n_v:,} vs {n_arr:,}")
+        neg = q("SELECT COUNT(*) FROM v_arrest_to_detention WHERE days_arrest_to_detention < 0")
+        check("v_arrest_to_detention has no negative durations", neg == 0, f"{neg:,}")
+        n_p = q("SELECT COUNT(*) FROM v_enforcement_pipeline")
+        check("v_enforcement_pipeline is one row per arrest", n_p == n_arr, f"{n_p:,} vs {n_arr:,}")
+        neg2 = q("SELECT COUNT(*) FROM v_enforcement_pipeline "
+                 "WHERE days_to_removal < 0 OR days_to_detention < 0")
+        check("v_enforcement_pipeline has no negative durations", neg2 == 0, f"{neg2:,}")
+    except Exception as e:
+        check("view parity / duration checks", False, str(e)[:100])
+    for tbl in EXACT_DEDUP_TABLES:
+        try:
+            cols = [r[0] for r in con.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = ?", [tbl]
+            ).fetchall()]
+            col_list = ", ".join(f'"{c}"' for c in cols)
+            dups = q(f"SELECT COUNT(*) FROM (SELECT 1 FROM {tbl} WHERE unique_id IS NOT NULL "
+                     f"GROUP BY {col_list} HAVING COUNT(*) > 1)")
+            check(f"{tbl} has no exact duplicate rows", dups == 0, f"{dups:,} duplicate groups")
+        except Exception as e:
+            check(f"{tbl} has no exact duplicate rows", False, str(e)[:100])
+    try:
+        srcs = {r[0] for r in con.execute("SELECT DISTINCT data_source FROM arrests").fetchall()}
+        check(f"arrests include {LATEST_RELEASE}", LATEST_RELEASE in srcs, ", ".join(sorted(srcs)))
+        check("no superseded releases remain in arrests", not (srcs & set(SUPERSEDED_RELEASES)),
+              ", ".join(sorted(srcs & set(SUPERSEDED_RELEASES))))
+    except Exception as e:
+        check("release coverage", False, str(e)[:100])
+    try:
+        mx = q("SELECT MAX(apprehension_date) FROM arrests")
+        check("arrests extend past 2026-06-01", mx is not None and str(mx) >= "2026-06-01", str(mx))
+    except Exception as e:
+        check("arrests extend past 2026-06-01", False, str(e)[:100])
+
+    print(f"\n  Audit checks: {failures} failure(s)")
+    return failures
+
 
 # ---------------------------------------------------------------------------
 # Data dictionary
@@ -710,7 +823,7 @@ def build_columns_table(con):
         "departure_date": "Removal/departure date",
         "detention_facility_code": "Facility identifier for detention location",
         "case_id": "EID case identifier",
-        "data_source": "Release identifier (release_2023, release_2025, or release_2026)",
+        "data_source": "Release identifier (release_2023 or the latest cumulative release, e.g. release_2026_08)",
     }
 
     for col, hint in join_hints.items():
@@ -851,9 +964,13 @@ def main():
     db_path.unlink(missing_ok=True)
     con = duckdb.connect(str(db_path))
     # Window-function dedup over the full detentions table can exceed RAM;
-    # allow disk spill and drop insertion-order preservation.
+    # allow disk spill and drop insertion-order preservation. pandas/openpyxl
+    # hold each xlsx outside DuckDB's accounting, so keep DuckDB well under
+    # the 10 GB WSL cap. Override with DATAPOND_MEMORY_LIMIT / DATAPOND_THREADS.
     con.execute("SET preserve_insertion_order = false")
     con.execute(f"SET temp_directory = '{db_path.resolve()}.tmp'")
+    con.execute(f"SET memory_limit = '{os.environ.get('DATAPOND_MEMORY_LIMIT', '4GB')}'")
+    con.execute(f"SET threads = {int(os.environ.get('DATAPOND_THREADS', 4))}")
 
     built: set[str] = set()
     build_order = [
@@ -890,6 +1007,12 @@ def main():
 
     print(f"\n[3b/7] Superseding overlapping release windows")
     apply_supersede(con, built)
+
+    print(f"\n[3c/7] Removing exact duplicate rows")
+    for tbl in EXACT_DEDUP_TABLES:
+        if tbl in built:
+            removed = dedup_exact_rows(con, tbl)
+            print(f"  {tbl}: removed {removed:,} exact duplicates")
     con.execute("CHECKPOINT")
 
     # [4/7] Views
@@ -899,7 +1022,7 @@ def main():
     # [5/7] Metadata
     print(f"\n[5/7] Building metadata")
     build_metadata(con, built)
-    run_validation(con, db_path)
+    failures = run_validation(con, db_path)
 
     # [6/7] Build _columns data dictionary
     print(f"\n[6/7] Building _columns data dictionary")
@@ -916,6 +1039,9 @@ def main():
     elapsed = time.time() - t_start
     print(f"\nDone in {int(elapsed // 60)}m {int(elapsed % 60)}s")
     print(f"Database: {db_path.resolve()}")
+    if failures:
+        print(f"\nBUILD FAILED: {failures} audit check(s) failed -- do not publish this file")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

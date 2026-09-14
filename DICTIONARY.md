@@ -6,232 +6,171 @@ Source: [Deportation Data Project](https://deportationdata.org)
 
 ICE administrative arrests
 
-Rows: 2,334,315
+Rows: 2,516,550
 
 | Column | Type | Nulls | Example | Join |
 |--------|------|-------|---------|------|
 | apprehension_date | TIMESTAMP | 0.0% | 2015-10-26 00:00:00 | Arrest date, joins arrests to detentions by person+date |
 | apprehension_method | VARCHAR | 0.0% | Located |  |
-| arrest_created_by | VARCHAR | 30.4% | (b)(6)(b)(7)(c) |  |
-| case_id | VARCHAR | 32.5% | (b)(6)(b)(7)(c) | EID case identifier |
-| subject_id | VARCHAR | 30.4% | (b)(6)(b)(7)(c) |  |
-| alien_file_number | VARCHAR | 31.1% | (b)(6)(b)(7)(c) |  |
-| unique_id | VARCHAR | 1.3% | f62520f6cfab8ad227a064a1e9e633d15c7ca3b7 | Anonymized person ID, links across arrests, detainers, detentions, removals |
-| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023, release_2025, or release_2026) |
-| apprehension_state | VARCHAR | 100.0% |  |  |
-| apprehension_aor | VARCHAR | 100.0% |  |  |
-| final_program | VARCHAR | 100.0% |  |  |
-| final_program_group | VARCHAR | 100.0% |  |  |
-| apprehension_criminality | VARCHAR | 69.6% | 3 Other Immigration Violator |  |
-| case_status | VARCHAR | 70.4% | A-Proceedings Terminated |  |
-| case_category | VARCHAR | 70.4% | [8B] Excludable / Inadmissible - Under Adjudication by IJ |  |
-| departed_date | TIMESTAMP | 81.3% | 2026-01-21 00:00:00 |  |
-| departure_country | VARCHAR | 81.3% | EL SALVADOR |  |
-| final_order_yes_no | VARCHAR | 70.4% | YES |  |
-| final_order_date | TIMESTAMP | 83.4% | 2025-11-21 00:00:00 |  |
-| birth_year | DOUBLE | 69.6% | 1999.0 |  |
-| citizenship_country | VARCHAR | 69.6% | GUATEMALA |  |
-| gender | VARCHAR | 69.6% | Male |  |
-| apprehension_site_landmark | VARCHAR | 70.2% | SLC GENERAL AREA, NON-SPECIFIC |  |
-| apprehension_type | VARCHAR | 89.5% | Targeted |  |
-| state | VARCHAR | 74.1% | COLORADO |  |
-| toa_current_duty_aor | VARCHAR | 69.9% | Salt Lake City Area of Responsibility |  |
-| apprehension_final_program | VARCHAR | 69.6% | ERO Criminal Alien Program |  |
-| arresting_agency | VARCHAR | 69.6% | ICE |  |
-| operation | VARCHAR | 92.4% | ICE Wall FY26 |  |
-| toa_current_duty_site | VARCHAR | 69.6% | ERO - Tallahassee, FL Sub Office |  |
-| case_criminality | VARCHAR | 70.4% | 3 Other Immigration Violator |  |
-| case_threat_level | DOUBLE | 88.9% | 3.0 |  |
+| arrest_created_by | VARCHAR | 35.4% | (b)(6)(b)(7)(c) |  |
+| case_id | VARCHAR | 37.4% | (b)(6)(b)(7)(c) | EID case identifier |
+| subject_id | VARCHAR | 35.4% | (b)(6)(b)(7)(c) |  |
+| alien_file_number | VARCHAR | 5.9% | (b)(6)(b)(7)(c) |  |
+| unique_id | VARCHAR | 1.4% | f62520f6cfab8ad227a064a1e9e633d15c7ca3b7 | Anonymized person ID, links across arrests, detainers, detentions, removals |
+| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023 or the latest cumulative release, e.g. release_2026_08) |
+| aor | VARCHAR | 64.9% | Houston Area of Responsibility |  |
+| apprehension_criminality | VARCHAR | 64.6% | 3 Other Immigration Violator |  |
+| event_landmark | VARCHAR | 72.5% | ICE ERO NEWARK |  |
+| state | VARCHAR | 68.8% | TEXAS |  |
+| city | VARCHAR | 68.9% | NEWARK |  |
+| birth_year | BIGINT | 64.6% | 2010 |  |
+| case_category | VARCHAR | 65.6% | [8C] Excludable / Inadmissible - Administrative Final Order Issued |  |
+| case_status | VARCHAR | 65.6% | 3-Voluntary Departure Confirmed |  |
+| case_threat_level | DOUBLE | 87.6% | 3.0 |  |
+| citizenship_country | VARCHAR | 64.6% | BRAZIL |  |
+| departed_date | TIMESTAMP | 76.9% | 2023-03-29 00:00:00 |  |
+| departure_country | VARCHAR | 76.9% | MEXICO |  |
+| final_order_date | TIMESTAMP | 80.2% | 2023-03-27 00:00:00 |  |
+| final_order_yes_no | VARCHAR | 65.6% | YES |  |
+| final_program | VARCHAR | 64.6% | ERO Criminal Alien Program |  |
+| final_program_group | VARCHAR | 64.6% | ICE |  |
+| gender | VARCHAR | 64.6% | Male |  |
 
 ## detainers
 
 Detainer requests issued to jails/prisons
 
-Rows: 597,009
+Rows: 740,601
 
 | Column | Type | Nulls | Example | Join |
 |--------|------|-------|---------|------|
-| detainer_prepare_date | TIMESTAMP | 0.0% | 2024-03-07 00:00:00 |  |
-| facility_state | VARCHAR | 0.1% | TEXAS |  |
-| facility_aor | VARCHAR | 19.9% | Miami Area of Responsibility |  |
-| port_of_departure | VARCHAR | 69.4% | LAREDO, TX, POE |  |
-| departure_country | VARCHAR | 69.4% | HONDURAS |  |
-| departed_date | TIMESTAMP | 69.3% | 2025-09-10 00:00:00 |  |
-| case_status | VARCHAR | 49.3% | 8-Excluded/Removed - Inadmissibility |  |
-| detainer_prepared_criminality | VARCHAR | 100.0% |  |  |
-| detention_facility | VARCHAR | 100.0% |  |  |
-| detention_facility_code | VARCHAR | 100.0% |  | Facility identifier for detention location |
-| facility_city | VARCHAR | 0.1% | GARDENA |  |
-| detainer_prep_threat_level | DOUBLE | 100.0% |  |  |
-| gender | VARCHAR | 0.0% | Male |  |
-| citizenship_country | VARCHAR | 0.0% | CUBA |  |
-| birth_country | VARCHAR | 0.0% | MEXICO |  |
+| apprehension_date | TIMESTAMP | 74.0% | 2022-11-08 13:01:00 | Arrest date, joins arrests to detentions by person+date |
+| apprehension_method | VARCHAR | 74.0% | CAP Local Incarceration |  |
+| biometric_match_yes_no | VARCHAR | 18.6% | YES |  |
+| birth_country | VARCHAR | 0.0% | EL SALVADOR |  |
 | birth_year | DOUBLE | 0.0% | 1989.0 |  |
-| entry_status | VARCHAR | 23.6% | Not  Applicable |  |
-| most_serious_conviction_msc_charge | VARCHAR | 100.0% |  |  |
-| msc_sentence_days | DOUBLE | 91.0% | 1.0 |  |
-| msc_sentence_months | DOUBLE | 93.4% | 10.0 |  |
-| msc_sentence_years | DOUBLE | 93.2% | 20.0 |  |
-| msc_charge_code | VARCHAR | 72.1% | 6410 |  |
-| msc_charge_date | TIMESTAMP | 72.1% | 2020-02-19 00:00:00 |  |
-| msc_conviction_date | TIMESTAMP | 72.1% | 2025-11-13 00:00:00 |  |
-| felon | VARCHAR | 100.0% |  |  |
-| processing_disposition | VARCHAR | 0.0% | Detainer |  |
-| case_category | VARCHAR | 49.3% | [8E] Inadmissible - ICE Fugitive |  |
-| final_program | VARCHAR | 100.0% |  |  |
-| time_of_apprehension_case_category | VARCHAR | 100.0% |  |  |
-| time_of_apprehension_current_program | VARCHAR | 100.0% |  |  |
-| apprehension_method | VARCHAR | 75.0% | CAP Local Incarceration |  |
-| case_final_order_yes_no | VARCHAR | 100.0% |  |  |
-| final_order_date | TIMESTAMP | 68.5% | 2015-02-25 00:00:00 |  |
-| apprehension_date | TIMESTAMP | 75.0% | 2023-05-11 09:49:00 | Arrest date, joins arrests to detentions by person+date |
-| entry_date | TIMESTAMP | 86.7% | 2022-06-01 00:00:00 |  |
-| prior_felony_yes_no | VARCHAR | 63.6% | YES |  |
-| multiple_prior_misd_yes_no | VARCHAR | 70.5% | YES |  |
-| violent_misdemeanor_yes_no | VARCHAR | 63.5% | YES |  |
-| illegal_entry_yes_no | VARCHAR | 100.0% | NO |  |
-| illegal_reentry_yes_no | VARCHAR | 71.9% | NO |  |
-| immigration_fraud_yes_no | VARCHAR | 100.0% | NO |  |
-| significant_risk_yes_no | VARCHAR | 71.9% | NO |  |
-| other_removal_reason_yes_no | VARCHAR | 100.0% | NO |  |
-| criminal_street_gang_yes_no | VARCHAR | 71.9% | NO |  |
-| aggravated_felony_yes_no | VARCHAR | 68.9% | YES |  |
-| deportation_ordered_yes_no | VARCHAR | 19.6% | NO |  |
-| order_to_show_cause_served_yes_no | VARCHAR | 19.6% | NO |  |
-| biometric_match_yes_no | VARCHAR | 19.6% | NO |  |
-| statements_made_yes_no | VARCHAR | 19.6% | NO |  |
-| unlawful_attempt_yes_no | VARCHAR | 100.0% | NO |  |
-| unlawful_entry_yes_no | VARCHAR | 100.0% | YES |  |
-| visa_yes_no | VARCHAR | 100.0% | NO |  |
-| final_order_yes_no | VARCHAR | 49.3% | YES |  |
-| federal_interest_yes_no | VARCHAR | 100.0% |  |  |
-| resume_custody_yes_no | VARCHAR | 0.0% | NO |  |
-| detainer_lift_reason | VARCHAR | 33.4% | Booked into Detention |  |
+| case_category | VARCHAR | 48.3% | [16] Reinstated Final Order |  |
+| case_status | VARCHAR | 48.3% | 8-Excluded/Removed - Inadmissibility |  |
+| citizenship_country | VARCHAR | 0.0% | EL SALVADOR |  |
+| departed_date | TIMESTAMP | 67.5% | 2022-12-02 00:00:00 |  |
+| departure_country | VARCHAR | 67.5% | HONDURAS |  |
+| deportation_ordered_yes_no | VARCHAR | 18.6% | NO |  |
+| detainer_lift_reason | VARCHAR | 27.1% | Booked into Detention |  |
+| detainer_prepared_threat_level | DOUBLE | 9.5% | 1.0 |  |
+| detainer_prepared_date | TIMESTAMP | 0.0% | 2022-10-18 00:00:00 |  |
+| detainer_prepared_criminality | VARCHAR | 0.0% | 1 Convicted Criminal |  |
 | detainer_type | VARCHAR | 0.0% | I247A - Immigration Detainer - Immigration Detainer - Notice of Action |  |
-| alien_file_number | VARCHAR | 100.0% |  |  |
-| case_id | VARCHAR | 100.0% |  | EID case identifier |
-| subject_id | VARCHAR | 100.0% |  |  |
-| eid_dta_id | VARCHAR | 0.0% | b(6), b(7)c |  |
-| unique_id | VARCHAR | 12.5% | f1bc79f7f98cfff4d16301d12e5f198d6b74b538 | Anonymized person ID, links across arrests, detainers, detentions, removals |
-| data_source | VARCHAR | 0.0% | release_2026 | Release identifier (release_2023, release_2025, or release_2026) |
-| detainer_criminality | VARCHAR | 0.0% | 2 Pending Criminal Charges |  |
-| detainer_facility | VARCHAR | 0.0% | GARDENA POLICE DEPT. |  |
-| detainer_facility_code | VARCHAR | 0.0% | BOPBIG |  |
-| detainer_threat_level | DOUBLE | 6.8% | 1.0 |  |
-| msc_charge | VARCHAR | 72.1% | Enticement of Minor for Indecent Purposes |  |
-| aggravated_felon_yes_no | VARCHAR | 0.1% | Not an Aggravated Felon |  |
-| toa_case_category | VARCHAR | 85.7% | [2A] Deportable - Under Adjudication by IJ |  |
-| toa_current_program | VARCHAR | 75.1% | ERO Criminal Alien Program |  |
-| federal_register_notice_yes_no | VARCHAR | 42.6% | YES |  |
-| detainer_lift_reason_code | VARCHAR | 33.4% | B |  |
-| active_investigation_yes_no | VARCHAR | 100.0% | YES |  |
-| notify_release_request_yes_no | VARCHAR | 100.0% | NO |  |
-| tod_current_duty_site | VARCHAR | 0.1% | ORLANDO, FL, DOCKET CONTROL OFFICE |  |
+| detention_facility | VARCHAR | 0.0% | WASHINGTON COUNTY JAIL |  |
+| detention_facility_code | VARCHAR | 0.0% | WASHCUT | Facility identifier for detention location |
+| entry_date | TIMESTAMP | 86.7% | 2022-10-10 00:00:00 |  |
+| entry_status | VARCHAR | 25.5% | Not  Applicable |  |
+| aor | VARCHAR | 18.0% | Salt Lake City Area of Responsibility |  |
+| city | VARCHAR | 0.1% | HURRICANE |  |
+| state | VARCHAR | 0.1% | UTAH |  |
+| felon | VARCHAR | 0.2% | Not an Aggravated Felon |  |
+| final_order_date | TIMESTAMP | 67.5% | 2022-07-25 00:00:00 |  |
+| final_order_yes_no | VARCHAR | 48.3% | YES |  |
+| tod_final_program | VARCHAR | 0.0% | ERO Criminal Alien Program |  |
+| gender | VARCHAR | 0.0% | Male |  |
+| msc_charge | VARCHAR | 73.6% | Burglary |  |
+| msc_charge_code | VARCHAR | 73.6% | 2299 |  |
+| msc_charge_date | TIMESTAMP | 73.6% | 2021-02-22 00:00:00 |  |
+| msc_conviction_date | TIMESTAMP | 73.6% | 2022-05-27 00:00:00 |  |
+| sentence_days | DOUBLE | 91.6% | 180.0 |  |
+| sentence_months | DOUBLE | 93.9% | 70.0 |  |
+| sentence_years | DOUBLE | 93.7% | 1.0 |  |
+| order_to_show_cause_served_yes_no | VARCHAR | 18.6% | NO |  |
+| port_of_departure | VARCHAR | 67.5% | ALEXANDRIA INTERNATIONAL AIRPORT, POE |  |
+| processing_disposition | VARCHAR | 0.0% | REINSTATEMENT OF DEPORT ORDER I-871 |  |
+| resume_custody_yes_no | VARCHAR | 0.0% | NO |  |
+| statements_made_yes_no | VARCHAR | 18.6% | NO |  |
+| toa_case_category | VARCHAR | 85.4% | [8C] Excludable / Inadmissible - Administrative Final Order Issued |  |
+| toa_case_category_code | VARCHAR | 85.4% | 8A |  |
+| alien_file_number | VARCHAR | 12.0% | (b)(6), (b)(7)(c) |  |
+| unique_id | VARCHAR | 12.0% | d152302048050cc4438df7d3386b8f2b3a4e15ab | Anonymized person ID, links across arrests, detainers, detentions, removals |
+| data_source | VARCHAR | 0.0% | release_2026_08 | Release identifier (release_2023 or the latest cumulative release, e.g. release_2026_08) |
 
 ## detentions
 
 Detention stays (book-in to book-out)
 
-Rows: 9,288,543
+Rows: 9,834,781
 
 | Column | Type | Nulls | Example | Join |
 |--------|------|-------|---------|------|
-| detention_id | VARCHAR | 26.1% | (b)(6)(b)(7)(c) |  |
-| case_id | VARCHAR | 26.9% | (b)(6)(b)(7)(c) | EID case identifier |
-| subject_id | VARCHAR | 26.1% | (b)(6)(b)(7)(c) |  |
-| stay_book_in_date | TIMESTAMP | 0.0% | 2012-04-07 00:00:00 | Detention start date |
-| detention_book_in_date | TIMESTAMP | 0.0% | 2012-04-07 00:00:00 |  |
-| detention_facility | VARCHAR | 0.0% | FLORENCE STAGING FACILITY |  |
-| detention_facility_code | VARCHAR | 0.0% | OTROPNM | Facility identifier for detention location |
-| detention_book_out_date | TIMESTAMP | 26.1% | 2012-06-12 00:00:00 |  |
-| detention_release_reason | VARCHAR | 0.6% | Transferred |  |
-| stay_book_out_date | TIMESTAMP | 1.7% | 2012-06-12 00:00:00 |  |
-| stay_release_reason | VARCHAR | 1.7% | Removed |  |
-| religion | VARCHAR | 97.1% | NTA |  |
+| detention_id | VARCHAR | 30.2% | (b)(6)(b)(7)(c) |  |
+| case_id | VARCHAR | 31.0% | (b)(6)(b)(7)(c) | EID case identifier |
+| subject_id | VARCHAR | 30.2% | (b)(6)(b)(7)(c) |  |
+| stay_book_in_date | TIMESTAMP | 0.0% | 2012-02-25 00:00:00 | Detention start date |
+| detention_book_in_date | TIMESTAMP | 0.0% | 2012-03-05 00:00:00 |  |
+| detention_facility | VARCHAR | 0.0% | MONROE COUNTY DETENTION-DORM |  |
+| detention_facility_code | VARCHAR | 0.0% | MONROMI | Facility identifier for detention location |
+| detention_book_out_date | TIMESTAMP | 0.7% | 2012-03-19 00:00:00 |  |
+| detention_release_reason | VARCHAR | 0.7% | Transferred |  |
+| stay_book_out_date | TIMESTAMP | 1.8% | 2012-03-21 00:00:00 |  |
+| stay_release_reason | VARCHAR | 1.8% | U.S. Marshals or other agency (explain in Detention Comments) |  |
+| religion | VARCHAR | 97.2% | Catholic |  |
 | marital | VARCHAR | 0.7% | Single |  |
 | gender | VARCHAR | 0.0% | Male |  |
-| ethnicity | VARCHAR | 54.9% | Hispanic Origin |  |
-| alien_file_number | VARCHAR | 26.4% | (b)(6)(b)(7)(c) |  |
-| birth_year | DOUBLE | 0.0% | 1990.0 |  |
-| entry_status | VARCHAR | 4.7% | PWA Mexico |  |
-| bond_posted_date | TIMESTAMP | 87.1% | 2012-05-03 00:00:00 |  |
-| bond_posted_amount | DOUBLE | 87.1% | 5000.0 |  |
-| initial_bond_set_amount | DOUBLE | 85.7% | 7500.0 |  |
+| ethnicity | VARCHAR | 53.3% | Hispanic Origin |  |
+| alien_file_number | VARCHAR | 0.5% | (b)(6)(b)(7)(c) |  |
+| birth_year | DOUBLE | 0.0% | 1962.0 |  |
+| entry_status | VARCHAR | 5.2% | PWA Mexico |  |
+| bond_posted_date | TIMESTAMP | 87.4% | 2011-12-02 00:00:00 |  |
+| bond_posted_amount | DOUBLE | 87.4% | 1500.0 |  |
+| initial_bond_set_amount | DOUBLE | 86.1% | 1500.0 |  |
 | case_status | VARCHAR | 1.0% | 8-Excluded/Removed - Inadmissibility |  |
 | case_category | VARCHAR | 1.0% | [16] Reinstated Final Order |  |
 | final_order_yes_no | VARCHAR | 1.0% | YES |  |
-| final_order_date | TIMESTAMP | 30.6% | 2013-05-09 00:00:00 |  |
-| departed_date | TIMESTAMP | 31.5% | 2016-07-15 00:00:00 |  |
-| departure_country | VARCHAR | 31.5% | GUATEMALA |  |
-| case_threat_level | DOUBLE | 54.9% | 3.0 |  |
-| charge | VARCHAR | 50.2% | IMMIGRANT WITHOUT AN IMMIGRANT VISA |  |
-| charge_code | VARCHAR | 50.2% | I7A1 |  |
-| charge_section_code | VARCHAR | 50.2% | 212a7AiI |  |
-| unique_id | VARCHAR | 0.4% | eab5153b48965fceac6f5ca727a34ae4a2676e2e | Anonymized person ID, links across arrests, detainers, detentions, removals |
-| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023, release_2025, or release_2026) |
-| stay_book_out_date_time | TIMESTAMP | 75.7% | 2025-12-12 17:15:00 |  |
-| felon | VARCHAR | 100.0% |  |  |
-| book_in_criminality | VARCHAR | 73.9% | 3 Other Immigration Violator |  |
-| final_charge | VARCHAR | 81.4% | IMMIGRANT WITHOUT AN IMMIGRANT VISA |  |
-| citizenship_country | VARCHAR | 73.9% | ECUADOR |  |
-| final_program | VARCHAR | 100.0% |  |  |
-| msc_charge_code | VARCHAR | 91.7% | 5707 |  |
-| msc_charge | VARCHAR | 91.7% | Assault |  |
-| book_out_date_time | TIMESTAMP | 74.6% | 2023-08-09 09:09:00 |  |
-| birth_country | VARCHAR | 73.9% | GUATEMALA |  |
-| known_terrorist_yes_no | VARCHAR | 73.9% | NO |  |
-| suspected_gang_yes_no | VARCHAR | 73.9% | NO |  |
-| msc_sentence_days | DOUBLE | 97.2% | 30.0 |  |
-| msc_sentence_months | DOUBLE | 98.3% | 97.0 |  |
-| msc_sentence_years | DOUBLE | 98.5% | 4.0 |  |
-| aggravated_felon_yes_no | VARCHAR | 87.1% | Not an Aggravated Felon |  |
-| offense_ina_236c_yes_no | VARCHAR | 74.7% | N |  |
-| case_ina_236c_yes_no | VARCHAR | 74.1% | N |  |
-| detainee_classification | VARCHAR | 73.9% | Low |  |
-| initial_bond_set_date | TIMESTAMP | 99.8% | 2019-09-05 00:00:00 |  |
-| race | VARCHAR | 74.3% | White |  |
-| entry_date | TIMESTAMP | 84.3% | 2023-05-20 00:00:00 |  |
-| apprehension_final_program | VARCHAR | 74.7% | Border Patrol |  |
-| msc_charge_date | TIMESTAMP | 91.9% | 2024-06-23 00:00:00 |  |
-| msc_conviction_date | TIMESTAMP | 91.7% | 2022-11-02 00:00:00 |  |
-| msc_criminal_charge_status | VARCHAR | 91.7% | Convicted |  |
-| msc_criminal_charge_status_code | VARCHAR | 91.7% | C |  |
-| msc_crime_class | VARCHAR | 92.0% | Felony |  |
-| book_in_site | VARCHAR | 73.9% | OAKDALE PROCESSING CENTER FEDERAL ALIEN DETENTION FACILITY |  |
-| book_in_aor | VARCHAR | 73.9% | New Orleans Area of Responsibility |  |
+| final_order_date | TIMESTAMP | 30.9% | 2012-03-05 00:00:00 |  |
+| departed_date | TIMESTAMP | 30.4% | 2012-12-04 00:00:00 |  |
+| departure_country | VARCHAR | 30.5% | MEXICO |  |
+| case_threat_level | DOUBLE | 55.7% | 1.0 |  |
+| charge | VARCHAR | 53.0% | ALIEN PRESENT WITHOUT ADMISSION OR PAROLE - (PWAs) |  |
+| charge_code | VARCHAR | 53.0% | I6A |  |
+| charge_section_code | VARCHAR | 53.0% | 212a6Ai |  |
+| unique_id | VARCHAR | 0.5% | 4e30bfd2a1bd17e6e0f08358114bb32750028550 | Anonymized person ID, links across arrests, detainers, detentions, removals |
+| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023 or the latest cumulative release, e.g. release_2026_08) |
+| book_in_criminality | VARCHAR | 69.8% | 3 Other Immigration Violator |  |
+| citizenship_country | VARCHAR | 69.8% | CUBA |  |
+| entry_date | TIMESTAMP | 83.0% | 2022-09-18 00:00:00 |  |
+| felon | VARCHAR | 84.3% | Not an Aggravated Felon |  |
+| final_charge | VARCHAR | 77.0% | ALIEN PRESENT WITHOUT ADMISSION OR PAROLE - (PWAs) |  |
+| apprehension_final_program | VARCHAR | 70.8% | Border Patrol |  |
+| msc_charge | VARCHAR | 90.5% | Assault |  |
+| apprehension_final_program_group | VARCHAR | 70.8% | CBP |  |
 
 ## encounters
 
 ICE encounters with individuals
 
-Rows: 2,586,515
+Rows: 3,065,104
 
 | Column | Type | Nulls | Example | Join |
 |--------|------|-------|---------|------|
-| event_date | TIMESTAMP | 0.0% | 2023-02-13 09:29:00 |  |
-| event_type | VARCHAR | 0.0% | CAP Local |  |
-| event_landmark | VARCHAR | 55.4% | HILLSBOROUGH COUNTY DOC |  |
-| operation | VARCHAR | 89.2% | - |  |
-| encounter_threat_level | VARCHAR | 67.6% | 1 |  |
-| responsible_aor | VARCHAR | 2.5% | Boston Area of Responsibility |  |
-| responsible_site | VARCHAR | 0.0% | BOSTON, MA, DOCKET CONTROL OFFICE |  |
-| lead_event_type | VARCHAR | 0.0% | CAP Local |  |
-| lead_source | VARCHAR | 84.3% | Other Lead |  |
-| final_program | VARCHAR | 0.0% | ERO Criminal Alien Program |  |
-| arresting_agency | VARCHAR | 0.0% | ICE |  |
+| birth_year | DOUBLE | 0.1% | 2014.0 |  |
+| case_category | VARCHAR | 50.0% | [8B] Excludable / Inadmissible - Under Adjudication by IJ |  |
+| case_status | VARCHAR | 50.0% | ACTIVE |  |
+| citizenship_country | VARCHAR | 0.0% | BRAZIL |  |
+| departed_date | TIMESTAMP | 75.5% | 2024-03-05 00:00:00 |  |
+| departure_country | VARCHAR | 75.6% | MEXICO |  |
 | encounter_criminality | VARCHAR | 0.0% | 3 Other Immigration Violator |  |
+| event_date | TIMESTAMP | 0.0% | 2023-04-11 08:56:00 |  |
+| event_type | VARCHAR | 0.0% | CAP Local |  |
+| final_order_date | TIMESTAMP | 75.4% | 2025-03-28 00:00:00 |  |
+| final_order_yes_no | VARCHAR | 50.0% | NO |  |
+| final_program | VARCHAR | 0.0% | ERO Criminal Alien Program |  |
+| final_program_group | VARCHAR | 0.0% | ICE |  |
+| gender | VARCHAR | 0.0% | M |  |
+| event_landmark | VARCHAR | 56.4% | ELIZABETH PD |  |
+| lead_event_type | VARCHAR | 0.0% | Not applicable |  |
+| lead_source | VARCHAR | 86.6% | USMS Referral (US Marshals Service) |  |
 | processing_disposition | VARCHAR | 0.1% | Not Amenable to Removal |  |
-| case_status | VARCHAR | 52.0% | 6-Deported/Removed - Deportability |  |
-| case_category | VARCHAR | 52.0% | [16] Reinstated Final Order |  |
-| departed_date | TIMESTAMP | 78.0% | 2023-06-26 00:00:00 |  |
-| departure_country | VARCHAR | 78.0% | MEXICO |  |
-| final_order_yes_no | VARCHAR | 52.0% | YES |  |
-| final_order_date | TIMESTAMP | 77.9% | 2012-10-05 00:00:00 |  |
-| birth_year | DOUBLE | 0.2% | 1989.0 |  |
-| citizenship_county | VARCHAR | 0.0% | UNKNOWN |  |
-| gender | VARCHAR | 0.0% | Male |  |
-| unique_id | VARCHAR | 10.8% | fbff7a7a5057103e4825275c297a479d449353e9 | Anonymized person ID, links across arrests, detainers, detentions, removals |
-| data_source | VARCHAR | 0.0% | release_2026 | Release identifier (release_2023, release_2025, or release_2026) |
+| responsible_aor | VARCHAR | 3.5% | Newark Area of Responsibility |  |
+| responsible_site | VARCHAR | 0.0% | NEWARK, NJ, DOCKET CONTROL OFFICE |  |
+| alien_file_number | VARCHAR | 10.5% | (b)(6), (b)(7)(c) |  |
+| unique_id | VARCHAR | 10.5% | 194850edf37560ab81beb9bd505e3c91bebfcd2b | Anonymized person ID, links across arrests, detainers, detentions, removals |
+| data_source | VARCHAR | 0.0% | release_2026_08 | Release identifier (release_2023 or the latest cumulative release, e.g. release_2026_08) |
 
 ## rca_decisions
 
@@ -241,45 +180,45 @@ Rows: 3,543,467
 
 | Column | Type | Nulls | Example | Join |
 |--------|------|-------|---------|------|
-| rca_aor | VARCHAR | 0.0% | NOL |  |
+| rca_aor | VARCHAR | 0.0% | BAL |  |
 | rca_dco | VARCHAR | 0.0% | BAL |  |
 | a_number | VARCHAR | 0.3% | b(6), b(7)(c) |  |
 | subj_id | VARCHAR | 10.0% | b(6), b(7)(c) |  |
 | last_name | VARCHAR | 0.0% | b(6), b(7)(c) |  |
 | first_name | VARCHAR | 0.0% | b(6), b(7)(c) |  |
-| alert_code | VARCHAR | 56.5% | 2, M |  |
+| alert_code | VARCHAR | 56.5% | 3 |  |
 | active_inactive | VARCHAR | 0.0% | Active |  |
-| submission_date | TIMESTAMP | 16.1% | 2015-05-11 00:00:00 |  |
+| submission_date | TIMESTAMP | 16.1% | 2012-08-28 00:00:00 |  |
 | status_code | VARCHAR | 26.1% | C |  |
 | risk_to_public_safety | VARCHAR | 16.1% | Low |  |
-| risk_of_flight | VARCHAR | 16.1% | Medium |  |
+| risk_of_flight | VARCHAR | 16.1% | High |  |
 | special_vulnerability | VARCHAR | 17.9% | NONE |  |
 | rca_case_number | VARCHAR | 68.6% | b(7)(e) |  |
-| case_cat_at_rca_decision | VARCHAR | 68.6% | 5B |  |
+| case_cat_at_rca_decision | VARCHAR | 68.6% | 8C |  |
 | fo_at_rca_decision | VARCHAR | 0.0% | Y |  |
-| fo_date_at_rca_decision | TIMESTAMP | 70.4% | 2004-09-23 00:00:00 |  |
+| fo_date_at_rca_decision | TIMESTAMP | 70.4% | 2012-02-27 00:00:00 |  |
 | removal_likely_at_rca_decision | VARCHAR | 89.4% | Y |  |
 | man_det_per_stat_alleg | VARCHAR | 31.4% | N |  |
 | rca_decision_type | VARCHAR | 0.0% | Detain/Release  |  |
 | rca_recommendation | VARCHAR | 0.0% | Supervisor to Determine - Detain or Release on Community Supervision |  |
-| rca_bond_recommendation | DOUBLE | 93.6% | 4000.0 |  |
-| officer_id | VARCHAR | 16.1% | b(6), b(7)(c)   |  |
+| rca_bond_recommendation | DOUBLE | 93.6% | 9000.0 |  |
+| officer_id | VARCHAR | 16.1% | b(6), b(7)(c) |  |
 | officer_agree_disagree | VARCHAR | 16.1% | Not Applicable, Supervisor to Determine |  |
 | supervisor_id | VARCHAR | 1.8% | b(6), b(7)(c) |  |
 | supervisor_agree_disagree | VARCHAR | 0.0% | Not Applicable, Supervisor to Determine |  |
 | rca_final_decision | VARCHAR | 0.0% | Detain in the Custody of This Service |  |
-| final_bond_amount | DOUBLE | 98.0% | 9000.0 |  |
-| rca_decision_date | TIMESTAMP | 0.0% | 2015-05-11 00:00:00 |  |
+| final_bond_amount | DOUBLE | 98.0% | 18000.0 |  |
+| rca_decision_date | TIMESTAMP | 0.0% | 2012-08-28 00:00:00 |  |
 | rca_scoring_ver | DOUBLE | 16.1% | 1.2 |  |
 | spec_vuln_ver | DOUBLE | 16.1% | 1.0 |  |
 | man_det_ver | DOUBLE | 91.9% | 1.0 |  |
 | disc_infr_ver | DOUBLE | 99.8% | 1.0 |  |
 | fiscal_year_code | BIGINT | 0.0% | 2013 |  |
 | fiscal_quarter_name | VARCHAR | 0.0% | Q4 |  |
-| unique_id | VARCHAR | 0.3% | 0423d85cb15c74d429f83f123824ff3a06dbc718 | Anonymized person ID, links across arrests, detainers, detentions, removals |
-| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023, release_2025, or release_2026) |
+| unique_id | VARCHAR | 0.3% | 00001ed059f30ad45f361ac3e86087cc9854a1fb | Anonymized person ID, links across arrests, detainers, detentions, removals |
+| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023 or the latest cumulative release, e.g. release_2026_08) |
 | special_vulnerability_comments | VARCHAR | 99.6% | b(6), b(7)(c) |  |
-| reason_removal_unlikely_at_rca_decision | VARCHAR | 99.4% | Expressed Fear of Returning to His/Her Country |  |
+| reason_removal_unlikely_at_rca_decision | VARCHAR | 99.4% | Prosecutorial Discretion |  |
 | officer_comments | VARCHAR | 97.3% | b(6), b(7)(c) |  |
 | supervisor_comments | VARCHAR | 96.7% | b(6), b(7)(c) |  |
 | sujb_id | VARCHAR | 90.0% | (b)(6),(b)(7)(c) |  |
@@ -288,132 +227,122 @@ Rows: 3,543,467
 
 Deportation/removal records
 
-Rows: 3,680,770
+Rows: 3,868,035
 
 | Column | Type | Nulls | Example | Join |
 |--------|------|-------|---------|------|
 | departure_date | TIMESTAMP | 0.0% | 2013-01-22 00:00:00 | Removal/departure date |
-| port_of_departure | VARCHAR | 0.0% | MIAMI INTERNATIONAL AIRPORT, MIAMI FLORIDA, POE |  |
-| departure_country | VARCHAR | 0.0% | MEXICO |  |
-| case_status | VARCHAR | 0.0% | 6-Deported/Removed - Deportability |  |
-| case_category | VARCHAR | 0.0% | [16] Reinstated Final Order |  |
+| port_of_departure | VARCHAR | 0.0% | HOUSTON, TX, POE |  |
+| departure_country | VARCHAR | 0.0% | EL SALVADOR |  |
+| case_status | VARCHAR | 0.0% | 8-Excluded/Removed - Inadmissibility |  |
+| case_category | VARCHAR | 0.0% | [8F] Expedited Removal |  |
 | final_order_yes_no | VARCHAR | 0.0% | YES |  |
-| final_order_date | TIMESTAMP | 9.7% | 2006-10-06 00:00:00 |  |
-| case_id | VARCHAR | 28.6% | (b)(6),(b)(7)(c) | EID case identifier |
+| final_order_date | TIMESTAMP | 10.8% | 1990-02-22 00:00:00 |  |
+| case_id | VARCHAR | 32.1% | (b)(6),(b)(7)(c) | EID case identifier |
 | gender | VARCHAR | 0.0% | Male |  |
-| birth_country | VARCHAR | 0.0% | MEXICO |  |
-| citizenship_country | VARCHAR | 0.0% | MEXICO |  |
+| birth_country | VARCHAR | 32.1% | MEXICO |  |
+| citizenship_country | VARCHAR | 0.0% | EL SALVADOR |  |
 | birth_year | DOUBLE | 0.0% | 1970.0 |  |
-| alien_file_number | VARCHAR | 28.9% | (b)(6),(b)(7)(c) |  |
-| entry_status | VARCHAR | 1.6% | PWA Mexico |  |
-| entry_date | TIMESTAMP | 25.0% | 2006-09-11 00:00:00 |  |
-| msc_charge | VARCHAR | 51.3% | Illegal Entry (INA SEC.101(a)(43)(O), 8USC1325 only) |  |
-| msc_charge_date | TIMESTAMP | 53.5% | 2007-08-15 00:00:00 |  |
-| msc_charge_code | VARCHAR | 51.3% | 0999 |  |
-| msc_conviction_date | TIMESTAMP | 51.3% | 2009-07-12 00:00:00 |  |
-| msc_criminal_charge_status | VARCHAR | 51.3% | Convicted |  |
-| case_threat_level | DOUBLE | 51.3% | 1.0 |  |
-| processing_disposition_code | VARCHAR | 28.7% | REINST |  |
-| processing_disposition | VARCHAR | 0.0% | REINSTATEMENT OF DEPORT ORDER I-871 |  |
-| current_program | VARCHAR | 29.4% | Border Patrol |  |
-| apprehension_date | TIMESTAMP | 29.5% | 2007-07-20 00:00:00 | Arrest date, joins arrests to detentions by person+date |
-| charge_section_code | VARCHAR | 28.9% | 212a9Aii |  |
-| charge_code | VARCHAR | 28.9% | I9A2 |  |
-| unique_id | VARCHAR | 0.5% | d7e01d84275800c05eff1b0752fa989889096231 | Anonymized person ID, links across arrests, detainers, detentions, removals |
-| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023, release_2025, or release_2026) |
-| case_aor | VARCHAR | 71.4% | San Antonio Area of Responsibility |  |
-| state | VARCHAR | 93.6% | GEORGIA |  |
-| county | VARCHAR | 100.0% | LOS ANGELES |  |
-| known_terrorist_yes_no | VARCHAR | 71.4% | NO |  |
-| suspected_gang_yes_no | VARCHAR | 71.4% | NO |  |
-| case_criminality | VARCHAR | 71.4% | 1 Convicted Criminal |  |
-| aggravated_felon_yes_no | VARCHAR | 88.1% | Not an Aggravated Felon |  |
-| final_program | VARCHAR | 71.4% | ERO Criminal Alien Program |  |
-| final_program_code | VARCHAR | 71.4% | CAP |  |
-| arresting_agency | VARCHAR | 71.4% | ICE |  |
-| toa_case_category | VARCHAR | 95.5% | [16] Reinstated Final Order |  |
-| latest_apprehension_final_program | VARCHAR | 71.6% | ERO Criminal Alien Program |  |
-| latest_arresting_agency | VARCHAR | 71.6% | ICE |  |
-| latest_apprehension_date | TIMESTAMP | 71.6% | 2023-11-29 11:35:00 |  |
-| final_charge_code | VARCHAR | 71.4% | I6A |  |
-| final_charge_section | VARCHAR | 71.4% | 212a6Ai |  |
-| prior_deport_yes_no | VARCHAR | 71.4% | NO |  |
+| alien_file_number | VARCHAR | 0.6% | (b)(6),(b)(7)(c) |  |
+| entry_status | VARCHAR | 1.8% | PWA Mexico |  |
+| entry_date | TIMESTAMP | 25.6% | 2012-04-13 00:00:00 |  |
+| msc_charge | VARCHAR | 52.4% | Traffic Offense |  |
+| msc_charge_date | TIMESTAMP | 54.5% | 2012-07-26 00:00:00 |  |
+| msc_charge_code | VARCHAR | 52.4% | 5499 |  |
+| msc_conviction_date | TIMESTAMP | 52.4% | 2007-04-02 00:00:00 |  |
+| msc_criminal_charge_status | VARCHAR | 52.4% | Convicted |  |
+| case_threat_level | DOUBLE | 52.4% | 1.0 |  |
+| processing_disposition_code | VARCHAR | 32.1% | NTA/DT |  |
+| processing_disposition | VARCHAR | 32.1% | REINSTATEMENT OF DEPORT ORDER I-871 |  |
+| current_program | VARCHAR | 32.8% | Detention and Deportation |  |
+| apprehension_date | TIMESTAMP | 1.1% | 2007-07-20 00:00:00 | Arrest date, joins arrests to detentions by person+date |
+| charge_section_code | VARCHAR | 32.4% | 212a6Ai |  |
+| charge_code | VARCHAR | 32.4% | I6A |  |
+| unique_id | VARCHAR | 0.6% | d7e01d84275800c05eff1b0752fa989889096231 | Anonymized person ID, links across arrests, detainers, detentions, removals |
+| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023 or the latest cumulative release, e.g. release_2026_08) |
+| apprehension_state | VARCHAR | 90.9% | ARIZONA |  |
+| apprehension_city | VARCHAR | 91.1% | Phoenix |  |
+| toa_case_category | VARCHAR | 98.1% | [8A] Excludable / Inadmissible - Hearing Not Commenced |  |
+| case_criminality | VARCHAR | 67.9% | 3 Other Immigration Violator |  |
+| docket_aor | VARCHAR | 67.9% | Houston Area of Responsibility |  |
+| final_charge_code | VARCHAR | 67.9% | I7A1 |  |
+| final_charge_section | VARCHAR | 67.9% | 212a7AiI |  |
+| final_program | VARCHAR | 67.9% | BP |  |
+| final_program_code | VARCHAR | 67.9% | Border Patrol |  |
+| latest_apprehension_program_code | VARCHAR | 68.2% | BP |  |
+| latest_apprehension_program | VARCHAR | 68.2% | Border Patrol |  |
+| prior_deport_yes_no | VARCHAR | 67.9% | NO |  |
+| progrocessing_disposition | VARCHAR | 67.9% | Expedited Removal with Credible Fear |  |
+| arresting_agency | VARCHAR | 67.9% | CBP |  |
 
 ## v_arrest_to_detention
 
 | Column | Type | Nulls | Example | Join |
 |--------|------|-------|---------|------|
-| apprehension_date | TIMESTAMP | 0.0% | 2015-10-18 00:00:00 | Arrest date, joins arrests to detentions by person+date |
-| apprehension_method | VARCHAR | 0.0% | Non-Custodial Arrest |  |
-| arrest_created_by | VARCHAR | 30.4% | (b)(6)(b)(7)(c) |  |
-| case_id | VARCHAR | 32.5% | (b)(6)(b)(7)(c) | EID case identifier |
-| subject_id | VARCHAR | 30.4% | (b)(6)(b)(7)(c) |  |
-| alien_file_number | VARCHAR | 31.1% | (b)(6)(b)(7)(c) |  |
-| unique_id | VARCHAR | 1.3% | f63a20964b0517a2d14496e4323303288699a377 | Anonymized person ID, links across arrests, detainers, detentions, removals |
-| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023, release_2025, or release_2026) |
-| apprehension_state | VARCHAR | 100.0% |  |  |
-| apprehension_aor | VARCHAR | 100.0% |  |  |
-| final_program | VARCHAR | 100.0% |  |  |
-| final_program_group | VARCHAR | 100.0% |  |  |
-| apprehension_criminality | VARCHAR | 69.6% | 3 Other Immigration Violator |  |
-| case_status | VARCHAR | 70.4% | 9-VR Witnessed |  |
-| case_category | VARCHAR | 70.4% | [3] Deportable - Administratively Final Order |  |
-| departed_date | TIMESTAMP | 81.3% | 2023-01-16 00:00:00 |  |
-| departure_country | VARCHAR | 81.3% | MEXICO |  |
-| final_order_yes_no | VARCHAR | 70.4% | NO |  |
-| final_order_date | TIMESTAMP | 83.4% | 2023-01-11 00:00:00 |  |
-| birth_year | DOUBLE | 69.6% | 1971.0 |  |
-| citizenship_country | VARCHAR | 69.6% | CUBA |  |
-| gender | VARCHAR | 69.6% | Male |  |
-| apprehension_site_landmark | VARCHAR | 70.2% | FEDERAL CORRECTIONAL INSTITUTE - OAKDALE |  |
-| apprehension_type | VARCHAR | 89.5% | Targeted |  |
-| state | VARCHAR | 74.1% | TEXAS |  |
-| toa_current_duty_aor | VARCHAR | 69.9% | New Orleans Area of Responsibility |  |
-| apprehension_final_program | VARCHAR | 69.6% | Non-Detained Docket Control |  |
-| arresting_agency | VARCHAR | 69.6% | ICE |  |
-| operation | VARCHAR | 92.4% | SBI |  |
-| toa_current_duty_site | VARCHAR | 69.6% | HOUSTON, TX, DOCKET CONTROL OFFICE |  |
-| case_criminality | VARCHAR | 70.4% | 2 Pending Criminal Charges |  |
-| case_threat_level | DOUBLE | 88.9% | 1.0 |  |
-| stay_book_in_date | TIMESTAMP | 21.7% | 2015-12-10 00:00:00 | Detention start date |
-| stay_book_out_date | TIMESTAMP | 23.8% | 2019-01-18 00:00:00 |  |
-| stay_release_reason | VARCHAR | 23.8% | Bonded Out |  |
-| initial_detention_facility | VARCHAR | 21.7% | LOS CUST CASE |  |
-| days_arrest_to_detention | BIGINT | 21.7% | 0 |  |
-| days_in_detention | BIGINT | 23.8% | 0 |  |
+| apprehension_date | TIMESTAMP | 0.0% | 2016-02-12 00:00:00 | Arrest date, joins arrests to detentions by person+date |
+| apprehension_method | VARCHAR | 0.0% | CAP Local Incarceration |  |
+| arrest_created_by | VARCHAR | 35.4% | (b)(6)(b)(7)(c) |  |
+| case_id | VARCHAR | 37.4% | (b)(6)(b)(7)(c) | EID case identifier |
+| subject_id | VARCHAR | 35.4% | (b)(6)(b)(7)(c) |  |
+| alien_file_number | VARCHAR | 5.9% | (b)(6)(b)(7)(c) |  |
+| unique_id | VARCHAR | 1.4% | f65e357959520b00d306e01a74fdec2d45f57330 | Anonymized person ID, links across arrests, detainers, detentions, removals |
+| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023 or the latest cumulative release, e.g. release_2026_08) |
+| aor | VARCHAR | 64.9% | Dallas Area of Responsibility |  |
+| apprehension_criminality | VARCHAR | 64.6% | 3 Other Immigration Violator |  |
+| event_landmark | VARCHAR | 72.5% | SLC GENERAL AREA, NON-SPECIFIC |  |
+| state | VARCHAR | 68.8% | UTAH |  |
+| city | VARCHAR | 68.9% | DALLAS |  |
+| birth_year | BIGINT | 64.6% | 1982 |  |
+| case_category | VARCHAR | 65.6% | [3] Deportable - Administratively Final Order |  |
+| case_status | VARCHAR | 65.6% | ACTIVE |  |
+| case_threat_level | DOUBLE | 87.6% | 1.0 |  |
+| citizenship_country | VARCHAR | 64.6% | RWANDA |  |
+| departed_date | TIMESTAMP | 76.9% | 2024-11-18 00:00:00 |  |
+| departure_country | VARCHAR | 76.9% | PERU |  |
+| final_order_date | TIMESTAMP | 80.2% | 2024-09-07 00:00:00 |  |
+| final_order_yes_no | VARCHAR | 65.6% | NO |  |
+| final_program | VARCHAR | 64.6% | Mobile Criminal Alien Team |  |
+| final_program_group | VARCHAR | 64.6% | ICE |  |
+| gender | VARCHAR | 64.6% | Male |  |
+| stay_book_in_date | TIMESTAMP | 21.2% | 2016-02-12 00:00:00 | Detention start date |
+| stay_book_out_date | TIMESTAMP | 23.4% | 2016-06-15 00:00:00 |  |
+| stay_release_reason | VARCHAR | 23.4% | Removed |  |
+| initial_detention_facility | VARCHAR | 21.2% | SANTA ANA DRO HOLDROOM |  |
+| days_arrest_to_detention | BIGINT | 21.2% | 0 |  |
+| days_in_detention | BIGINT | 23.4% | 124 |  |
 
 ## v_daily_arrests
 
 | Column | Type | Nulls | Example | Join |
 |--------|------|-------|---------|------|
 | date | DATE | 0.0% | 2011-10-01 |  |
-| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023, release_2025, or release_2026) |
+| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023 or the latest cumulative release, e.g. release_2026_08) |
 | arrest_count | BIGINT | 0.0% | 142 |  |
 
 ## v_detention_stays
 
 | Column | Type | Nulls | Example | Join |
 |--------|------|-------|---------|------|
-| unique_id | VARCHAR | 0.2% | b4f81c87fdbec691f17badf13f49902b4c5bc0da | Anonymized person ID, links across arrests, detainers, detentions, removals |
-| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023, release_2025, or release_2026) |
-| stay_book_in_date | TIMESTAMP | 0.0% | 2013-07-19 00:00:00 | Detention start date |
-| stay_book_out_date | TIMESTAMP | 1.3% | 2012-03-05 00:00:00 |  |
+| unique_id | VARCHAR | 0.3% | bba483a9b8f58aabe1e8d33cee4569071461983e | Anonymized person ID, links across arrests, detainers, detentions, removals |
+| data_source | VARCHAR | 0.0% | release_2023 | Release identifier (release_2023 or the latest cumulative release, e.g. release_2026_08) |
+| stay_book_in_date | TIMESTAMP | 0.0% | 2012-03-07 00:00:00 | Detention start date |
+| stay_book_out_date | TIMESTAMP | 1.3% | 2012-07-03 00:00:00 |  |
 | stay_release_reason | VARCHAR | 1.3% | Removed |  |
-| initial_detention_facility | VARCHAR | 0.0% | LEXINGTON COUNTY JAIL |  |
+| initial_detention_facility | VARCHAR | 0.0% | RIO GRANDE VALLEY STAGING |  |
 | facility_segments | BIGINT | 0.0% | 1 |  |
 
 ## v_enforcement_pipeline
 
 | Column | Type | Nulls | Example | Join |
 |--------|------|-------|---------|------|
-| unique_id | VARCHAR | 1.3% | 5b116f1f3bdfc3904084913ddf8ed2f1e67ef058 | Anonymized person ID, links across arrests, detainers, detentions, removals |
-| apprehension_date | TIMESTAMP | 0.0% | 2014-10-22 00:00:00 | Arrest date, joins arrests to detentions by person+date |
+| unique_id | VARCHAR | 1.4% | f62632d6844d95278b4cb8a7fe4c5a899adcbfe9 | Anonymized person ID, links across arrests, detainers, detentions, removals |
+| apprehension_date | TIMESTAMP | 0.0% | 2015-10-18 00:00:00 | Arrest date, joins arrests to detentions by person+date |
 | arrest_source | VARCHAR | 0.0% | release_2023 |  |
-| stay_book_in_date | TIMESTAMP | 21.7% | 2015-12-10 00:00:00 | Detention start date |
-| stay_book_out_date | TIMESTAMP | 23.8% | 2016-07-12 00:00:00 |  |
-| detention_facility | VARCHAR | 21.7% | YORK COUNTY JAIL, PA |  |
-| departure_date | TIMESTAMP | 34.6% | 2017-05-16 00:00:00 | Removal/departure date |
-| removal_country | VARCHAR | 34.6% | MEXICO |  |
-| days_to_detention | BIGINT | 21.7% | 0 |  |
-| days_detained | BIGINT | 23.8% | 17 |  |
-| days_to_removal | BIGINT | 34.6% | 166 |  |
+| stay_book_in_date | TIMESTAMP | 21.2% | 2015-12-10 00:00:00 | Detention start date |
+| stay_book_out_date | TIMESTAMP | 23.4% | 2016-07-12 00:00:00 |  |
+| detention_facility | VARCHAR | 21.2% | SANTA ANA DRO HOLDROOM |  |
+| departure_date | TIMESTAMP | 33.8% | 2017-05-16 00:00:00 | Removal/departure date |
+| removal_country | VARCHAR | 33.8% | MEXICO |  |
+| days_to_detention | BIGINT | 21.2% | 0 |  |
+| days_detained | BIGINT | 23.4% | 181 |  |
+| days_to_removal | BIGINT | 33.8% | 523 |  |

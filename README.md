@@ -13,7 +13,7 @@ Two FOIA releases are combined:
 | 2023 FOIA litigation | FY2012 - Sep 30, 2022 (after supersede, see below) | arrests, detentions, removals, rca_decisions |
 | 2026 release | Oct 1, 2022 - Mar 10, 2026 | arrests, detainers, detentions, removals, encounters |
 
-Every row has a `data_source` column (`release_2023` or `release_2026`).
+Every row has a `data_source` column (`release_2023` or `release_2026_08`, the August 2026 cumulative release).
 
 **How overlap is handled (supersede):** the 2026 release cumulatively covers activity from 2022-10-01 onward, overlapping the 2023 release's final year. Because rows cannot be matched across releases (see below), older-release rows inside the 2026 window are deleted wholesale: arrests by apprehension date, removals by departure date, and detentions by whether the *stay* was active on or after 2022-10-01. An earlier 2025 settlement release is fully contained in the 2026 window and was superseded entirely.
 
@@ -24,18 +24,18 @@ Every row has a `data_source` column (`release_2023` or `release_2026`).
 | `detentions` | 9,288,543 | Detention **facility segments** (~2 per stay; see caveats) |
 | `removals` | 3,680,770 | Deportation/removal records |
 | `rca_decisions` | 3,543,467 | Release/custody assessment decisions (release_2023 only, through Sep 2023) |
-| `encounters` | 2,586,515 | ICE encounters (release_2026 only, Oct 2022+) |
+| `encounters` | 3,065,104 | ICE encounters (release_2026_08 only, Oct 2022+) |
 | `arrests` | 2,334,315 | ICE administrative arrests |
-| `detainers` | 597,009 | Detainer requests (release_2026 only, Oct 2022+) |
+| `detainers` | 740,601 | Detainer requests (release_2026_08 only, Oct 2022+) |
 
 (Row counts as of the July 2026 build; `_metadata` inside the database is authoritative.)
 
 ## Researcher caveats — read before publishing numbers
 
-1. **`unique_id` does NOT link across releases.** IDs are re-anonymized in every FOIA release; zero IDs are shared between `release_2023` and `release_2026`. Person histories cannot cross 2022-10-01, and re-arrest/recidivism rates near that boundary are structurally understated. Within a single release, linkage works well (81-85% of arrest IDs resolve in detentions).
+1. **`unique_id` does NOT link across releases.** IDs are re-anonymized in every FOIA release; zero IDs are shared between `release_2023` and `release_2026_08`. Person histories cannot cross 2022-10-01, and re-arrest/recidivism rates near that boundary are structurally understated. Within a single release, linkage works well (81-85% of arrest IDs resolve in detentions).
 2. **`detentions` is facility-segment level, not stay level.** A stay that moves between facilities has one row per facility. `COUNT(*)` overstates detention stays roughly 2x; aggregate to `(unique_id, stay_book_in_date)` or use the `v_detention_stays` view.
-3. **Some columns exist in only one release.** `arrests.citizenship_country`, `gender`, and `birth_year` are populated only in `release_2026` (nothing before Oct 2022); `removals.apprehension_date` is release_2023-only while release_2026 has `latest_apprehension_date` (different semantics). Check per-release null rates in `_columns` before trending any column across the boundary.
-4. **Coverage windows differ by table.** Arrests and removals are continuous Oct 2011 - Mar 2026. Detainers and encounters exist only from Oct 2022. `rca_decisions` ends Sep 2023. There is no pre-FY2023 detainer baseline in this data.
+3. **Some columns exist in only one release.** `arrests.citizenship_country`, `gender`, and `birth_year` are populated only in `release_2026_08` (nothing before Oct 2022); `removals.apprehension_date` is release_2023-only while release_2026 has `latest_apprehension_date` (different semantics). Check per-release null rates in `_columns` before trending any column across the boundary.
+4. **Coverage windows differ by table.** Arrests and removals are continuous Oct 2011 - Aug 2026 (through 2026-08-06). Detainers and encounters exist only from Oct 2022. `rca_decisions` ends Sep 2023. There is no pre-FY2023 detainer baseline in this data.
 5. **Secondary dates contain source garbage** (years 0199-8017 in `entry_date`, `msc_charge_date`, `final_order_date`, etc.). Primary event dates (apprehension, departure, book-in/out) are nearly clean. Clamp secondary dates to 1990-2026 before computing intervals.
 6. **Redacted ID columns are unusable.** `case_id`, `subject_id`, `alien_file_number`, and `a_number` contain only FOIA redaction strings like `(b)(6)(b)(7)(c)`. The only working key is `unique_id`.
 7. **Fully-redacted duplicate rows remain in `arrests`** (~10k rows with NULL `unique_id` that are byte-identical). They may be distinct real events that redaction made indistinguishable; we deliberately did not delete them.
@@ -93,7 +93,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 ```bash
 # 1. Place ICE xlsx files in data/raw/
 #    data/raw/release_2023/  (30 xlsx files from 2023 FOIA release)
-#    data/raw/release_2026/  (xlsx files from the 2026 release)
+#    data/raw/release_2026_08/  (xlsx files from the Aug 2026 release; scripts/download_releases.sh fetches both)
 
 # 2. Build the database
 uv run python build_database.py
