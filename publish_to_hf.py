@@ -33,7 +33,7 @@ def generate_dataset_card(db_path: str) -> str:
     n_tables = len(metadata)
 
     return f"""---
-license: mit
+license: cc0-1.0
 task_categories:
   - tabular-classification
   - tabular-regression
