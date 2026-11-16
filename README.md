@@ -1,34 +1,91 @@
 # ICE Enforcement Database
 
-A clean, queryable DuckDB database built from ICE enforcement data published by the [Deportation Data Project](https://law.ucla.edu/academics/centers/center-immigration-law-and-policy/deportation-data-project) (Berkeley Law / UCLA) via FOIA litigation.
+Explore U.S. Immigration and Customs Enforcement (ICE) arrests, detainers, detention-facility records, removals, encounters and custody decisions released through the Deportation Data Project. The published database contains 23.6 million rows across six tables, with table-specific coverage from fiscal year (FY) 2012 through August 6, 2026.
 
-**23.5M+ rows** across **6 tables** covering ICE arrests, detainers, detentions, removals, encounters, and custody decisions from FY2012 through August 6, 2026.
+Rows represent events or decisions, not distinct people. In particular, detentions contains facility segments: use v_detention_stays when counting stays or measuring their duration. Detainers and encounters begin in October 2022, while custody-assessment decisions end in September 2023.
 
-## Data Sources
+The current data combines the 2023 and August 2026 Freedom of Information Act (FOIA) releases. Person identifiers support linkage only within a release; they cannot trace a person across the release boundary. Older overlapping records are superseded rather than matched by person ID. The Deportation Data Project flags the removals data as less reliable than the July 2025 release. Use the Python or R examples below and review table-specific coverage before interpreting trends.
+
+<a id="quick-start"></a>
+
+## Start querying
+
+Show five arrest records dated from August 1, 2026 onward, with the date, state and recorded arrest method. This previews the published snapshot, whose latest arrest date is August 6, 2026.
+
+Choose R or Python. Install datapond once: use `install.packages("datapond")` in R, or run `python -m pip install datapond` in a terminal.
+
+### R
+
+```r
+library(datapond)
+con <- dp_connect("ice")
+tryCatch({
+  DBI::dbExecute(con, "SET threads=1")
+  DBI::dbExecute(con, "SET memory_limit='128MiB'")
+  DBI::dbExecute(con, "SET max_temp_directory_size='0B'")
+  print(DBI::dbGetQuery(con, "SELECT apprehension_date,state,apprehension_method FROM arrests WHERE apprehension_date >= TIMESTAMP '2026-08-01' LIMIT 5"))
+}, finally = dp_disconnect(con))
+```
+
+### Python
+
+```python
+import datapond
+con = datapond.connect('ice')
+try:
+    con.execute("SET threads=1")
+    con.execute("SET memory_limit='128MiB'")
+    con.execute("SET max_temp_directory_size='0B'")
+    print(con.execute("""SELECT apprehension_date,state,apprehension_method FROM arrests WHERE apprehension_date >= TIMESTAMP '2026-08-01' LIMIT 5""").fetchall())
+finally:
+    con.close()
+```
+
+Queries run on your computer and read the byte ranges they need. A small result can still require a large scan. These examples limit DuckDB to one thread and a 128 MiB buffer pool with disk spill disabled; that is not a limit on the entire R or Python process. Larger analyses may need more memory or a local download with enough disk space.
+
+<a id="additional-dataset-notes"></a>
+
+<a id="tables"></a>
+
+## Tables and coverage
+
+| Table | Rows | Description |
+|-------|------|-------------|
+| `arrests` | 2,516,550 | ICE administrative arrests |
+| `detentions` | 9,834,781 | Detention **facility segments** (~2 per stay; see caveats) |
+| `removals` | 3,868,035 | Deportation/removal records |
+| `rca_decisions` | 3,543,467 | Release/custody assessment decisions (release_2023 only, through Sep 2023) |
+| `encounters` | 3,065,104 | ICE encounters (release_2026_08 only, Oct 2022+) |
+| `detainers` | 740,601 | Detainer requests (release_2026_08 only, Oct 2022+) |
+
+(The current build incorporates the August 2026 release through August 6, 2026; `_metadata` inside the database is authoritative.)
+
+<a id="coverage-fields-and-sources"></a>
+
+See the [data dictionary](https://github.com/ian-nason/ice-database/blob/main/DICTIONARY.md) for column definitions.
+
+## Coverage by release
 
 Two FOIA releases are combined:
 
 | Release | Coverage | Tables |
 |---------|----------|--------|
-| 2023 FOIA litigation | FY2012 - Sep 30, 2022 (after supersede, see below) | arrests, detentions, removals, rca_decisions |
-| 2026 release | Oct 1, 2022 - Mar 10, 2026 | arrests, detainers, detentions, removals, encounters |
+| 2023 FOIA litigation, retained event records | FY2012 - Sep 30, 2022 (after supersede, see below) | arrests, detentions, removals |
+| 2023 FOIA litigation, custody assessment | Through Sep 30, 2023; not superseded by the newer event release | rca_decisions |
+| August 2026 release | Oct 1, 2022 - Aug 6, 2026 | arrests, detainers, detentions, removals, encounters |
 
 Every row has a `data_source` column (`release_2023` or `release_2026_08`, the August 2026 cumulative release).
 
-**How overlap is handled (supersede):** the 2026 release cumulatively covers activity from 2022-10-01 onward, overlapping the 2023 release's final year. Because rows cannot be matched across releases (see below), older-release rows inside the 2026 window are deleted wholesale: arrests by apprehension date, removals by departure date, and detentions by whether the *stay* was active on or after 2022-10-01. An earlier 2025 settlement release is fully contained in the 2026 window and was superseded entirely.
+## Pre-built Views
 
-## Tables
+| View | Description |
+|------|-------------|
+| `v_detention_stays` | Detentions collapsed to one row per stay (use this for stay counts/durations) |
+| `v_arrest_to_detention` | One row per arrest, matched to the first detention stay on/after the arrest within the same release |
+| `v_enforcement_pipeline` | One row per arrest: arrest -> first detention stay -> first removal, date-constrained, same release |
+| `v_daily_arrests` | Daily arrest counts by data source |
 
-| Table | Rows | Description |
-|-------|------|-------------|
-| `detentions` | 9,288,543 | Detention **facility segments** (~2 per stay; see caveats) |
-| `removals` | 3,680,770 | Deportation/removal records |
-| `rca_decisions` | 3,543,467 | Release/custody assessment decisions (release_2023 only, through Sep 2023) |
-| `encounters` | 3,065,104 | ICE encounters (release_2026_08 only, Oct 2022+) |
-| `arrests` | 2,334,315 | ICE administrative arrests |
-| `detainers` | 740,601 | Detainer requests (release_2026_08 only, Oct 2022+) |
-
-(Row counts as of the July 2026 build; `_metadata` inside the database is authoritative.)
+The join views match within `data_source` and require the detention/removal to occur on or after the arrest date, so durations are non-negative by construction. Arrests with no subsequent detention/removal in the same release keep NULL columns — remember that pipeline completion rates are lower bounds near release boundaries (caveat 1).
 
 ## Researcher caveats — read before publishing numbers
 
@@ -40,7 +97,9 @@ Every row has a `data_source` column (`release_2023` or `release_2026_08`, the A
 6. **Redacted ID columns are unusable.** `case_id`, `subject_id`, `alien_file_number`, and `a_number` contain only FOIA redaction strings like `(b)(6)(b)(7)(c)`. The only working key is `unique_id`.
 7. **Fully-redacted duplicate rows remain in `arrests`** (~10k rows with NULL `unique_id` that are byte-identical). They may be distinct real events that redaction made indistinguishable; we deliberately did not delete them.
 
-## Quick Start (Remote Query)
+<a id="advanced-access-quick-start-remote-query"></a>
+
+## More example queries
 
 No download needed. DuckDB uses HTTP range requests to fetch only the pages your query touches.
 
@@ -75,18 +134,19 @@ GROUP BY 1 ORDER BY MIN(days);
 
 See [`examples/query_examples.sql`](examples/query_examples.sql) for more.
 
-## Pre-built Views
+## Sources and maintenance
 
-| View | Description |
-|------|-------------|
-| `v_detention_stays` | Detentions collapsed to one row per stay (use this for stay counts/durations) |
-| `v_arrest_to_detention` | One row per arrest, matched to the first detention stay on/after the arrest within the same release |
-| `v_enforcement_pipeline` | One row per arrest: arrest -> first detention stay -> first removal, date-constrained, same release |
-| `v_daily_arrests` | Daily arrest counts by data source |
+### Source and license reference
 
-The join views match within `data_source` and require the detention/removal to occur on or after the arrest date, so durations are non-negative by construction. Arrests with no subsequent detention/removal in the same release keep NULL columns — remember that pipeline completion rates are lower bounds near release boundaries (caveat 1).
+See the [data dictionary](https://github.com/ian-nason/ice-database/blob/main/DICTIONARY.md) for column definitions and the [Deportation Data Project (FOIA litigation)](https://deportationdata.org) for the source. License: CC-0.
 
-## Build from Source
+### Data Sources
+
+ICE enforcement records are published by the [Deportation Data Project](https://law.ucla.edu/academics/centers/center-immigration-law-and-policy/deportation-data-project) (Berkeley Law / UCLA) through FOIA litigation.
+
+**How overlap is handled (supersede):** the 2026 release cumulatively covers activity from 2022-10-01 onward, overlapping the 2023 release's final year. Because rows cannot be matched across releases (see below), older-release rows inside the 2026 window are deleted wholesale: arrests by apprehension date, removals by departure date, and detentions by whether the *stay* was active on or after 2022-10-01. An earlier 2025 settlement release is fully contained in the 2026 window and was superseded entirely.
+
+### Build from Source
 
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
@@ -104,6 +164,6 @@ uv run python publish_to_hf.py --token hf_YOUR_TOKEN
 
 The build reads all xlsx files, auto-detects header rows (skipping FOUO preambles), normalizes column names, harmonizes schemas across releases, deduplicates within releases, applies the cross-release supersede, and creates the analysis views.
 
-## License
+### License
 
 Build code: MIT. Underlying data: public domain (U.S. government records released via FOIA).
