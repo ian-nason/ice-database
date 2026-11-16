@@ -25,7 +25,7 @@ def generate_dataset_card(db_path: str) -> str:
     con.close()
 
     table_rows = "\n".join(
-        f"| `{r['table_name']}` | {r['description']} | {r['row_count']:,} "
+        f"| `{r['table_name']}` | {'Detention facility segments' if r['table_name'] == 'detentions' else r['description']} | {r['row_count']:,} "
         f"| {r['column_count']} | {r['data_sources']} | {r['date_range']} |"
         for _, r in metadata.iterrows()
     )
@@ -57,13 +57,13 @@ size_categories:
 
 A clean, queryable DuckDB database built from ICE enforcement data published by the [Deportation Data Project](https://law.ucla.edu/academics/centers/center-immigration-law-and-policy/deportation-data-project) (Berkeley Law / UCLA) via FOIA litigation.
 
-**{total_rows:,} rows** across **{n_tables} tables** covering ICE arrests, detainers, detentions, removals, and custody decisions.
+**{total_rows:,} rows** across **{n_tables} tables** covering ICE arrests, detainers, detentions, removals, encounters, and custody decisions.
 
 Combines two FOIA releases:
 - **2023 release** (FY2012-FY2023): arrests, detentions, removals, RCA decisions
-- **2025 settlement release** (Sep 2023 - Oct 2025): arrests, detainers, detentions
+- **August 2026 cumulative release** (Oct 1, 2022 - Aug 6, 2026): arrests, detainers, detentions, removals, encounters
 
-Every row has a `data_source` column (`release_2023` or `release_2025`) so you can filter by release. Overlapping records are deduplicated, preferring the richer 2025 data.
+Every row has a `data_source` column (`release_2023` or `release_2026_08`). The August cumulative release supersedes older overlapping records; RCA remains historical through September 2023. This September 14, 2026 build reads original FOIA exports, not the publisher's separately processed derivative datasets.
 
 Built with [ice-database](https://github.com/ian-nason/ice-database).
 
@@ -87,16 +87,16 @@ GROUP BY 1 ORDER BY 1 DESC LIMIT 12;
 
 ```python
 import duckdb
-con = duckdb.connect()
-con.sql("INSTALL httpfs; LOAD httpfs;")
-con.sql(\\\"\\\"\\\"
-    ATTACH 'https://huggingface.co/datasets/Nason/ice-database/resolve/main/ice.duckdb'
-    AS ice (READ_ONLY)
-\\\"\\\"\\\")
-con.sql("SELECT * FROM ice._metadata").show()
+con = duckdb.connect(config={{"memory_limit": "128MiB", "threads": "1", "max_temp_directory_size": "0B"}})
+try:
+    con.execute("INSTALL httpfs; LOAD httpfs;")
+    con.execute("ATTACH 'https://huggingface.co/datasets/Nason/ice-database/resolve/main/ice.duckdb' AS ice (READ_ONLY)")
+    con.sql("SELECT * FROM ice._metadata").show()
+finally:
+    con.close()
 ```
 
-DuckDB uses HTTP range requests, so only the pages needed for your query are downloaded.
+Queries run on your machine using HTTP range requests. Transfer depends on columns and scans; a final LIMIT does not guarantee a small transfer. The memory setting above limits DuckDB buffers, not the entire process; larger queries may fail with spill disabled.
 
 ## Tables
 
@@ -104,10 +104,12 @@ DuckDB uses HTTP range requests, so only the pages needed for your query are dow
 |-------|-------------|------|------|---------|------------|
 {table_rows}
 
+The card corrects the `detentions` label to **facility segments**. An existing database can still retain the legacy "Detention stays" description in `_metadata`; this card does not rewrite that database. Use the segment/stay distinction below regardless of the older embedded label.
+
 ## Key Features
 
 ### Linked Records
-Tables share a `unique_id` field for tracing individuals across the enforcement pipeline: arrests -> detainers -> detentions -> removals.
+Tables share `unique_id` only within the same `data_source`; IDs are re-anonymized across releases. Always include the release in joins. `detentions` contains facility segments, not unique stays; use `v_detention_stays` for stays.
 
 ### Pre-built Views
 - `v_arrest_to_detention` - Arrests joined to detention stays
@@ -115,7 +117,7 @@ Tables share a `unique_id` field for tracing individuals across the enforcement 
 - `v_daily_arrests` - Daily arrest counts by data source
 
 ### Multi-release Deduplication
-Where both releases cover the same period, records are deduplicated on key fields (unique_id + date + facility) with the richer 2025 release preferred.
+Within-release duplicates are handled by the builder. Cross-release overlap is removed by time-window supersession, not by matching re-anonymized IDs: arrests by apprehension date, removals by departure date, and detentions by whether the stay was active on or after October 1, 2022. Older cumulative 2025/March 2026 releases are superseded. See the source repository for precise rules and missing/date-quality caveats.
 
 ## Data Source
 
